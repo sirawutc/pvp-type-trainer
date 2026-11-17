@@ -63,6 +63,12 @@ h3{font-size:1rem;font-weight:600}
 .loop .legend{font-size:.85rem;color:var(--muted);margin:4px 0 0}
 .badge{display:inline-block;font-family:var(--head);font-size:.78rem;font-weight:600;border-radius:8px;padding:2px 8px;background:var(--focus);color:#fff;margin-left:6px;vertical-align:middle}
 
+.loopnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.loopnav button{font-family:var(--head);font-weight:600;font-size:.9rem;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:8px 12px}
+.loopnav button.go{border-color:var(--focus);color:var(--focus)}
+.loopnav .cnt{font-family:var(--head);font-weight:600;font-size:.9rem;color:var(--muted);min-width:46px;text-align:center}
+.loopnav .allsw{display:inline-flex;align-items:center;gap:6px;font-family:var(--head);font-weight:600;font-size:.86rem;color:var(--muted);margin-left:auto}
+
 /* type grid */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
 @media (min-width:520px){.grid{grid-template-columns:repeat(6,1fr)}}
@@ -391,11 +397,23 @@ function loopSVG(k){
  return s+'</svg>';
 }
 
+var LORDER=[],LIDX=0,LALL=false;
+function shuffleLoops(){
+ LORDER=LOOPS.map(function(_,i){return i;});
+ for(var i=LORDER.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=LORDER[i];LORDER[i]=LORDER[j];LORDER[j]=t;}
+ LIDX=0;
+}
+function loopCard(l){
+ return '<article class="loop'+(l.core?" core":"")+'"><h3>'+l.t+(l.core?'<span class="badge">ท่องก่อน</span>':'')+'</h3><p class="story">'+l.s+'</p>'+loopSVG(l.k)+'<p class="legend">ลูกศร ➜ = ตีแรงใส่ (ดาเมจ ×1.6)</p></article>';
+}
 function renderLoops(){
- var h="";
- LOOPS.forEach(function(l,i){
-  h+='<article class="loop'+(l.core?" core":"")+'"><h3>'+l.t+(l.core?'<span class="badge">ท่องก่อน</span>':'')+'</h3><p class="story">'+l.s+'</p>'+loopSVG(l.k)+'<p class="legend">ลูกศร ➜ = ตีแรงใส่ (ดาเมจ ×1.6)</p></article>';
- });
+ if(!LORDER.length)shuffleLoops();
+ if(LIDX>=LORDER.length)LIDX=0;
+ var h='<div class="loopnav">';
+ if(!LALL)h+='<button type="button" data-l="prev" aria-label="วงจรก่อนหน้า">◀</button><span class="cnt">'+(LIDX+1)+' / '+LORDER.length+'</span><button type="button" data-l="next" aria-label="วงจรถัดไป">▶</button>';
+ h+='<button type="button" class="go" data-l="rand">สุ่มใหม่</button><label class="allsw"><input type="checkbox" id="lall"'+(LALL?" checked":"")+'> ดูทั้งหมด</label></div>';
+ if(LALL)h+=LORDER.map(function(i){return loopCard(LOOPS[i]);}).join("");
+ else h+=loopCard(LOOPS[LORDER[LIDX]]);
  h+='<div class="panel"><h3>คู่พิเศษที่ต้องจำแยก</h3><p class="hint" style="margin:6px 0 10px">ตีธาตุตัวเองแรง: <b>ผี ➜ ผี</b> และ <b>มังกร ➜ มังกร</b> · ธาตุปกติไม่ตีแรงใส่ใครเลย</p><h3 style="margin-top:10px"><span class="tag t-imm">ตีแทบไม่เข้า ×0.39</span></h3><p class="hint" style="margin:6px 0 8px">ในเกมหลักเรียกว่า “ไม่มีผล” แต่ใน GO ยังตีได้ ×0.39</p>';
  Object.keys(IMM).forEach(function(a){IMM[a].forEach(function(d){h+='<div class="row" style="margin:6px 0;align-items:center">'+chipHTML(a,true)+'<span aria-hidden="true">➜</span>'+chipHTML(d,true)+'<span class="hint" style="margin:0">×0.39</span></div>';});});
  h+='</div>';
@@ -1081,6 +1099,7 @@ function show(name){
  if(!VIEWS.some(function(v){return v[0]===name;}))name="loops";
  VIEWS.forEach(function(v){document.getElementById("view-"+v[0]).classList.toggle("on",v[0]===name);});
  document.querySelectorAll("#tabs button").forEach(function(b){if(b.getAttribute("data-v")===name)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
+ if(name==="loops"&&!LALL){shuffleLoops();renderLoops();}
  if(name==="mix")renderMix();
  if(name==="battle"){if(!BT.live&&!BT.over)startBattle();else renderBattle();}
  else stopTimer();
@@ -1092,6 +1111,19 @@ document.getElementById("tabs").addEventListener("click",function(ev){var b=ev.t
 window.addEventListener("hashchange",function(){show(location.hash.replace("#",""));});
 
 document.getElementById("mixclear").addEventListener("click",function(){mixSel=[];renderMix();});
+document.getElementById("loops").addEventListener("click",function(ev){
+ var b=ev.target.closest("button[data-l]");if(!b)return;
+ var a=b.getAttribute("data-l");
+ if(a==="prev")LIDX=(LIDX+LORDER.length-1)%LORDER.length;
+ else if(a==="next")LIDX=(LIDX+1)%LORDER.length;
+ else{var cur=LORDER[LIDX];do{shuffleLoops();}while(LORDER.length>1&&LORDER[0]===cur);}
+ renderLoops();
+ document.getElementById("view-loops").scrollIntoView({block:"start"});
+});
+document.getElementById("loops").addEventListener("change",function(ev){
+ if(ev.target.id!=="lall")return;
+ LALL=ev.target.checked;renderLoops();
+});
 renderLoops();renderDetail();renderModes();bindQuiz();setStats();newQ();renderBModes();renderRoster();
 function renderWho(){
  var sel=document.getElementById("whosel");
