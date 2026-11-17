@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>จำธาตุให้ขึ้นใจ — PvP Type Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#EAEEF7; --panel:#FFFFFF; --ink:#141A33; --muted:#5A6385; --line:#D5DBEC;
+  --win:#16894C; --win-bg:#DDF3E6; --lose:#C93A33; --lose-bg:#FBE2E0;
+  --res:#2D63C8; --res-bg:#DEE8FA; --imm:#3A4160; --imm-bg:#E3E5EE;
+  --focus:#4B4FE0;
+  --head:"Prompt","Noto Sans Thai","Sarabun",system-ui,sans-serif;
+  --body:"Noto Sans Thai","Sarabun",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1328; --panel:#192040; --ink:#ECEFFF; --muted:#A3ABCC; --line:#2B3560;
+    --win:#4FD08A; --win-bg:#143A29; --lose:#FF8680; --lose-bg:#40201F;
+    --res:#8FB4FF; --res-bg:#1B2C55; --imm:#C3C9E4; --imm-bg:#2A3050;
+    --focus:#9EA2FF; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1328; --panel:#192040; --ink:#ECEFFF; --muted:#A3ABCC; --line:#2B3560;
+  --win:#4FD08A; --win-bg:#143A29; --lose:#FF8680; --lose-bg:#40201F;
+  --res:#8FB4FF; --res-bg:#1B2C55; --imm:#C3C9E4; --imm-bg:#2A3050;
+  --focus:#9EA2FF; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;padding-bottom:84px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+main{max-width:720px;margin:0 auto;padding:18px 16px 24px}
+h1,h2,h3{font-family:var(--head);line-height:1.25;margin:0}
+h1{font-size:1.7rem;font-weight:700}
+h2{font-size:1.25rem;font-weight:600;margin-bottom:6px}
+h3{font-size:1rem;font-weight:600}
+.lead{color:var(--muted);margin:6px 0 18px;max-width:60ch}
+.view{display:none}
+.view.on{display:block}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:6px 12px 6px 9px;font-family:var(--head);font-weight:600;font-size:.95rem;line-height:1.2;white-space:nowrap}
+.chip .e{font-size:1.1em}
+.chip.sm{padding:4px 10px 4px 7px;font-size:.85rem}
+.row{display:flex;flex-wrap:wrap;gap:7px}
+
+/* loops */
+.loop{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 14px 16px;margin-bottom:14px}
+.loop.core{border:2px solid var(--focus)}
+.loop h3{margin-bottom:2px}
+.loop .story{color:var(--muted);font-size:.95rem;margin:2px 0 6px}
+.loop svg{display:block;width:100%;height:auto;max-height:230px;color:var(--ink)}
+.loop .legend{font-size:.85rem;color:var(--muted);margin:4px 0 0}
+.badge{display:inline-block;font-family:var(--head);font-size:.78rem;font-weight:600;border-radius:8px;padding:2px 8px;background:var(--focus);color:#fff;margin-left:6px;vertical-align:middle}
+
+/* type grid */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+@media (min-width:520px){.grid{grid-template-columns:repeat(6,1fr)}}
+.tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:3px solid transparent;border-radius:16px;padding:10px 4px;min-height:74px;font-family:var(--head);font-weight:600;font-size:.92rem}
+.tile .e{font-size:1.5rem;line-height:1}
+.tile[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--panel) inset}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+.panel .hd{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.panel .hd .big{font-size:2rem;line-height:1}
+.mnemo{background:var(--win-bg);border-radius:12px;padding:10px 12px;margin:8px 0 14px;font-size:1rem}
+.sec{margin-top:12px}
+.sec h3{margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.tag{font-family:var(--head);font-size:.8rem;font-weight:600;border-radius:8px;padding:2px 8px}
+.t-lose{background:var(--lose-bg);color:var(--lose)}
+.t-win{background:var(--win-bg);color:var(--win)}
+.t-res{background:var(--res-bg);color:var(--res)}
+.t-imm{background:var(--imm-bg);color:var(--imm)}
+.hint{color:var(--muted);font-size:.9rem;margin:6px 0 0}
+.empty{color:var(--muted);font-size:.95rem}
+
+/* mix */
+.mixres .grp{border-radius:14px;padding:10px 12px;margin-top:10px}
+.grp .m{font-family:var(--head);font-weight:700;font-size:1.15rem;margin-bottom:6px}
+.g-x256{background:var(--lose-bg);color:var(--lose)}
+.g-x16{background:var(--lose-bg);color:var(--lose)}
+.g-x1{background:var(--imm-bg);color:var(--ink)}
+.g-low{background:var(--res-bg);color:var(--res)}
+.g-vlow{background:var(--imm-bg);color:var(--imm)}
+.pick{display:flex;gap:8px;align-items:center;margin:10px 0 12px;flex-wrap:wrap}
+.slot{border:2px dashed var(--line);border-radius:14px;min-height:44px;min-width:110px;display:flex;align-items:center;justify-content:center;padding:4px 8px;font-size:.9rem;color:var(--muted)}
+.btn{border:0;border-radius:12px;padding:10px 16px;font-family:var(--head);font-weight:600;background:var(--focus);color:#fff}
+.btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
+
+/* quiz */
+.modes{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.mode{border:2px solid var(--line);background:var(--panel);border-radius:12px;padding:8px 12px;font-family:var(--head);font-weight:600;font-size:.9rem}
+.mode[aria-pressed="true"]{border-color:var(--focus);background:var(--focus);color:#fff}
+.q{font-family:var(--head);font-weight:600;font-size:1.15rem;margin:4px 0 12px}
+.stats{display:flex;gap:16px;color:var(--muted);font-size:.9rem;margin-bottom:10px}
+.stats b{color:var(--ink);font-family:var(--head)}
+.opt{border:3px solid transparent;border-radius:999px}
+.opt.sel{border-color:var(--ink)}
+.opt.ok{border-color:var(--win)}
+.opt.miss{border-color:var(--lose);border-style:dashed}
+.opt.bad{border-color:var(--lose)}
+.fb{border-radius:12px;padding:10px 12px;margin-top:12px;font-size:1rem}
+.fb.good{background:var(--win-bg);color:var(--win)}
+.fb.no{background:var(--lose-bg);color:var(--lose)}
+.mults{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.mults .btn{background:var(--panel);color:var(--ink);border:2px solid var(--line);font-size:1.1rem}
+.mults .btn.ok{border-color:var(--win);background:var(--win-bg)}
+.mults .btn.bad{border-color:var(--lose);background:var(--lose-bg)}
+
+/* tabs */
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;background:var(--panel);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
+.tabs .in{display:flex;gap:6px;width:100%;max-width:720px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:12px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--head);font-weight:600;font-size:.78rem;color:var(--muted)}
+.tabs button .ic{font-size:1.35rem;line-height:1}
+.tabs button[aria-current="page"]{background:var(--focus);color:#fff}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <h1>จำธาตุให้ขึ้นใจ</h1>
+  <p class="lead">สำหรับ PvP: ท่อง “ธาตุนี้แพ้อะไร” ก่อน แล้วค่อยดูว่าตีแรงใส่ใคร ใช้เวลาสิบนาทีต่อวัน เริ่มจากวงจรสามเหลี่ยม</p>
+
+  <section id="view-loops" class="view" aria-labelledby="h-loops">
+    <h2 id="h-loops">วงจรสามเหลี่ยม: จำสามธาตุในหนึ่งประโยค</h2>
+    <p class="lead">ลูกศรชี้ไปที่ธาตุที่ <b>โดนตีแรง</b> เช่น ไฟ ➜ หญ้า คือไฟตีหญ้าแรง ลูกศรสุดท้ายวนกลับมาที่ธาตุแรกเสมอ พอจำได้สามธาตุก็ได้สามคู่ในครั้งเดียว</p>
+    <div id="loops"></div>
+  </section>
+
+  <section id="view-types" class="view" aria-labelledby="h-types">
+    <h2 id="h-types">ดูทีละธาตุ</h2>
+    <p class="lead">แตะธาตุเพื่อดูว่า <b>แพ้อะไร</b> (ท่องก่อน) ตีแรงใส่ใคร และต้านใคร</p>
+    <div class="grid" id="grid"></div>
+    <div class="panel" id="detail" aria-live="polite"></div>
+  </section>
+
+  <section id="view-mix" class="view" aria-labelledby="h-mix">
+    <h2 id="h-mix">คู่ต่อสู้สองธาตุ</h2>
+    <p class="lead">เลือกธาตุของคู่ต่อสู้ (1–2 ธาตุ) แล้วดูว่าธาตุไหนตีแรงขนาดไหน ตัวคูณจะคูณกัน</p>
+    <div class="grid" id="mixgrid"></div>
+    <div class="pick"><div class="slot" id="slots">ยังไม่ได้เลือก</div><button class="btn ghost" id="mixclear" type="button">ล้างที่เลือก</button></div>
+    <div id="mixres" class="mixres" aria-live="polite"></div>
+  </section>
+
+  <section id="view-quiz" class="view" aria-labelledby="h-quiz">
+    <h2 id="h-quiz">ฝึกท่อง</h2>
+    <div class="modes" id="modes"></div>
+    <div class="stats"><span>ถูก <b id="sCorrect">0</b>/<b id="sTotal">0</b></span><span>ต่อเนื่อง <b id="sStreak">0</b></span><span>สูงสุด <b id="sBest">0</b></span></div>
+    <div class="panel" id="qbox"></div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="เมนู"><div class="in" id="tabs"></div></nav>
+
+<script>
+(function(){
+"use strict";
+var TYPES=[
+ ["normal","ปกติ","⚪","#A8A77A",0],["fire","ไฟ","🔥","#EE8130",0],["water","น้ำ","💧","#6390F0",0],
+ ["electric","ไฟฟ้า","⚡","#F7D02C",0],["grass","หญ้า","🍃","#7AC74C",0],["ice","น้ำแข็ง","❄️","#96D9D6",0],
+ ["fighting","ต่อสู้","🥊","#C22E28",1],["poison","พิษ","☠️","#A33EA1",1],["ground","ดิน","⛰️","#E2BF65",0],
+ ["flying","บิน","🪶","#A98FF3",0],["psychic","พลังจิต","🔮","#F95587",0],["bug","แมลง","🐛","#A6B91A",0],
+ ["rock","หิน","🪨","#B6A136",0],["ghost","ผี","👻","#735797",1],["dragon","มังกร","🐉","#6F35FC",1],
+ ["dark","ดาร์ก","🌙","#705746",1],["steel","เหล็ก","⚙️","#B7B7CE",0],["fairy","แฟรี่","✨","#D685AD",0]
+];
+var T={},IDS=[];
+TYPES.forEach(function(t){T[t[0]]={id:t[0],th:t[1],e:t[2],c:t[3],w:t[4]===1};IDS.push(t[0]);});
+
+/* ตารางจริงของ Pokémon GO: ตีแรง ×1.6 / โดนต้าน ×0.625 / ถูกต้านสองชั้น ×0.39 (แทนค่า “ไม่มีผล” ในเกมหลัก) */
+var SE={
+ normal:[],fire:["grass","ice","bug","steel"],water:["fire","ground","rock"],electric:["water","flying"],
+ grass:["water","ground","rock"],ice:["grass","ground","flying","dragon"],fighting:["normal","ice","rock","dark","steel"],
+ poison:["grass","fairy"],ground:["fire","electric","poison","rock","steel"],flying:["grass","fighting","bug"],
+ psychic:["fighting","poison"],bug:["grass","psychic","dark"],rock:["fire","ice","flying","bug"],
+ ghost:["psychic","ghost"],dragon:["dragon"],dark:["psychic","ghost"],steel:["ice","rock","fairy"],fairy:["fighting","dragon","dark"]
+};
+var NVE={
+ normal:["rock","steel"],fire:["fire","water","rock","dragon"],water:["water","grass","dragon"],electric:["electric","grass","dragon"],
+ grass:["fire","grass","poison","flying","bug","dragon","steel"],ice:["fire","water","ice","steel"],
+ fighting:["poison","flying","psychic","bug","fairy"],poison:["poison","ground","rock","ghost"],ground:["grass","bug"],
+ flying:["electric","rock","steel"],psychic:["psychic","steel"],bug:["fire","fighting","poison","flying","ghost","steel","fairy"],
+ rock:["fighting","ground","steel"],ghost:["dark"],dragon:["steel"],dark:["fighting","dark","fairy"],
+ steel:["fire","water","electric","steel"],fairy:["fire","poison","steel"]
+};
+var IMM={normal:["ghost"],fighting:["ghost"],electric:["ground"],poison:["steel"],ground:["flying"],psychic:["dark"],ghost:["normal"],dragon:["fairy"]};
+
+function one(a,d){
+ if(SE[a].indexOf(d)>-1)return 1.6;
+ if(IMM[a]&&IMM[a].indexOf(d)>-1)return 0.390625;
+ if(NVE[a].indexOf(d)>-1)return 0.625;
+ return 1;
+}
+function mult(a,defs){var m=1;defs.forEach(function(d){m*=one(a,d);});return m;}
+function weakTo(d){return IDS.filter(function(a){return one(a,d)===1.6;});}
+function resists(d){return IDS.filter(function(a){return one(a,d)===0.625;});}
+function resists2(d){return IDS.filter(function(a){return one(a,d)===0.390625;});}
+
+var MNEMO={
+ normal:"คนธรรมดากลัว “นักมวย” คนเดียว",
+ fire:"ไฟโดนน้ำดับ ดินกลบ หินทับ",
+ water:"น้ำนำไฟฟ้า และหญ้าดูดน้ำ",
+ electric:"ไฟฟ้าลงดินหมด (สายดิน)",
+ grass:"หญ้าโดนไฟเผา แช่แข็ง พิษ นกจิก แมลงกัด (แพ้ห้าธาตุ)",
+ ice:"น้ำแข็งละลายด้วยไฟ แตกด้วยหมัด หินทุบ เหล็กทิ่ม",
+ fighting:"นักมวยโดนเตะจากฟ้า จิตสะกด และนางฟ้า",
+ poison:"พิษซึมลงดิน และโดนจิตกดทับ",
+ ground:"ดินโดนน้ำชะ รากหญ้ายึด และแช่แข็ง",
+ flying:"นกโดนฟ้าผ่า แช่แข็ง และก้อนหินปา",
+ psychic:"จิตเสียสมาธิเพราะแมลงหึ่ง ผีหลอก และความมืด",
+ bug:"แมลงโดนไฟลน นกจิก และหินทับ",
+ rock:"หินโดนน้ำกัดเซาะ รากหญ้า หมัดทุบ ดินทับ เหล็กเจาะ (แพ้ห้าธาตุ)",
+ ghost:"ผีกลัวผีด้วยกัน และกลัวความมืด",
+ dragon:"มังกรโดนแช่แข็ง คู่มังกร และนางฟ้า",
+ dark:"ความมืดโดนหมัด แมลงตอมแสง และนางฟ้าส่องสว่าง",
+ steel:"เหล็กโดนไฟหลอม หมัดทุบ และดินกัดสนิม",
+ fairy:"นางฟ้าโดนพิษ และดาบเหล็ก"
+};
+
+var LOOPS=[
+ {k:["fire","grass","water"],t:"ไฟ ➜ หญ้า ➜ น้ำ ➜ ไฟ",s:"ไฟเผาหญ้า · หญ้าดูดน้ำ · น้ำดับไฟ",core:true},
+ {k:["electric","water","ground"],t:"ไฟฟ้า ➜ น้ำ ➜ ดิน ➜ ไฟฟ้า",s:"ไฟฟ้าช็อตน้ำ · น้ำชะดิน · ดินเป็นสายดินกลืนไฟฟ้า",core:true},
+ {k:["fighting","rock","flying"],t:"ต่อสู้ ➜ หิน ➜ บิน ➜ ต่อสู้",s:"หมัดทุบหิน · หินปาใส่นก · นกเตะนักมวยจากฟ้า",core:true},
+ {k:["psychic","fighting","dark"],t:"พลังจิต ➜ ต่อสู้ ➜ ดาร์ก ➜ พลังจิต",s:"จิตสะกดนักมวย · นักมวยล้มความมืด · ความมืดทำลายจิต",core:true},
+ {k:["ground","poison","grass"],t:"ดิน ➜ พิษ ➜ หญ้า ➜ ดิน",s:"ดินกลบพิษ · พิษทำลายหญ้า · รากหญ้ายึดดิน"},
+ {k:["rock","bug","grass"],t:"หิน ➜ แมลง ➜ หญ้า ➜ หิน",s:"หินทับแมลง · แมลงกัดหญ้า · รากหญ้าแทรกหิน"},
+ {k:["steel","ice","ground"],t:"เหล็ก ➜ น้ำแข็ง ➜ ดิน ➜ เหล็ก",s:"เหล็กทุบน้ำแข็ง · น้ำแข็งแช่แข็งดิน · ดินกัดสนิมเหล็ก"},
+ {k:["fire","steel","rock"],t:"ไฟ ➜ เหล็ก ➜ หิน ➜ ไฟ",s:"ไฟหลอมเหล็ก · เหล็กทุบหิน · หินกลบไฟ"},
+ {k:["steel","fairy","fighting"],t:"เหล็ก ➜ แฟรี่ ➜ ต่อสู้ ➜ เหล็ก",s:"ดาบเหล็กฟันนางฟ้า · นางฟ้าปราบนักมวย · หมัดทุบเหล็ก"}
+];
+
+function chipHTML(id,small){var t=T[id];var fg=t.w?"#FFFFFF":"#141A33";return '<span class="chip'+(small?" sm":"")+'" style="background:'+t.c+';color:'+fg+'"><span class="e" aria-hidden="true">'+t.e+'</span>'+t.th+'</span>';}
+function chipsHTML(list,small){return list.length?'<div class="row">'+list.map(function(i){return chipHTML(i,small);}).join("")+'</div>':'<span class="empty">ไม่มี</span>';}
+
+function loopSVG(k){
+ var P=[[150,56],[252,150],[48,150]],R=27;
+ var s='<svg viewBox="0 0 300 212" role="img" aria-label="'+T[k[0]].th+' ตีแรง '+T[k[1]].th+' ตีแรง '+T[k[2]].th+' ตีแรง '+T[k[0]].th+'"><defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>';
+ for(var i=0;i<3;i++){
+  var a=P[i],b=P[(i+1)%3],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.sqrt(dx*dx+dy*dy),ux=dx/L,uy=dy/L,g=R+7;
+  s+='<line x1="'+(a[0]+ux*g).toFixed(1)+'" y1="'+(a[1]+uy*g).toFixed(1)+'" x2="'+(b[0]-ux*g).toFixed(1)+'" y2="'+(b[1]-uy*g).toFixed(1)+'" stroke="currentColor" stroke-width="3" marker-end="url(#ar)"/>';
+ }
+ for(var j=0;j<3;j++){
+  var t=T[k[j]],p=P[j],ly=j===0?p[1]-R-10:p[1]+R+22;
+  s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+R+'" fill="'+t.c+'"/><text x="'+p[0]+'" y="'+(p[1]+9)+'" text-anchor="middle" font-size="26">'+t.e+'</text><text x="'+p[0]+'" y="'+ly+'" text-anchor="middle" font-size="16" font-weight="600" fill="currentColor" font-family="Prompt,Noto Sans Thai,sans-serif">'+t.th+'</text>';
+ }
+ return s+'</svg>';
+}
+
+function renderLoops(){
+ var h="";
+ LOOPS.forEach(function(l,i){
+  h+='<article class="loop'+(l.core?" core":"")+'"><h3>'+l.t+(l.core?'<span class="badge">ท่องก่อน</span>':'')+'</h3><p class="story">'+l.s+'</p>'+loopSVG(l.k)+'<p class="legend">ลูกศร ➜ = ตีแรงใส่ (ดาเมจ ×1.6)</p></article>';
+ });
+ h+='<div class="panel"><h3>คู่พิเศษที่ต้องจำแยก</h3><p class="hint" style="margin:6px 0 10px">ตีธาตุตัวเองแรง: <b>ผี ➜ ผี</b> และ <b>มังกร ➜ มังกร</b> · ธาตุปกติไม่ตีแรงใส่ใครเลย</p><h3 style="margin-top:10px"><span class="tag t-imm">ตีแทบไม่เข้า ×0.39</span></h3><p class="hint" style="margin:6px 0 8px">ในเกมหลักเรียกว่า “ไม่มีผล” แต่ใน GO ยังตีได้ ×0.39</p>';
+ Object.keys(IMM).forEach(function(a){IMM[a].forEach(function(d){h+='<div class="row" style="margin:6px 0;align-items:center">'+chipHTML(a,true)+'<span aria-hidden="true">➜</span>'+chipHTML(d,true)+'<span class="hint" style="margin:0">×0.39</span></div>';});});
+ h+='</div>';
+ document.getElementById("loops").innerHTML=h;
+}
+
+var selType="fire";
+function renderGrid(elId,onPick,sel){
+ var el=document.getElementById(elId),h="";
+ IDS.forEach(function(id){var t=T[id],fg=t.w?"#FFFFFF":"#141A33";
+  h+='<button type="button" class="tile" data-id="'+id+'" aria-pressed="'+(sel.indexOf(id)>-1)+'" style="background:'+t.c+';color:'+fg+'"><span class="e" aria-hidden="true">'+t.e+'</span>'+t.th+'</button>';});
+ el.innerHTML=h;
+ el.onclick=function(ev){var b=ev.target.closest("button[data-id]");if(b)onPick(b.getAttribute("data-id"));};
+}
+function renderDetail(){
+ var id=selType,t=T[id],d=document.getElementById("detail");
+ d.innerHTML='<div class="hd"><span class="big" aria-hidden="true">'+t.e+'</span><h3 style="font-size:1.25rem">'+t.th+'</h3></div>'
+ +'<div class="mnemo">'+MNEMO[id]+'</div>'
+ +'<div class="sec"><h3><span class="tag t-lose">แพ้ ×1.6</span> ท่องข้อนี้ก่อน</h3>'+chipsHTML(weakTo(id))+'</div>'
+ +'<div class="sec"><h3><span class="tag t-win">ตีแรง ×1.6</span> ใส่</h3>'+chipsHTML(SE[id],true)+'</div>'
+ +'<div class="sec"><h3><span class="tag t-res">ต้านทาน ×0.625</span> ตี</h3>'+chipsHTML(resists(id),true)+'</div>'
+ +(resists2(id).length?'<div class="sec"><h3><span class="tag t-imm">ต้านสองชั้น ×0.39</span></h3>'+chipsHTML(resists2(id),true)+'</div>':'');
+ renderGrid("grid",function(i){selType=i;renderDetail();},[selType]);
+}
+
+var mixSel=[];
+function renderMix(){
+ renderGrid("mixgrid",function(i){var p=mixSel.indexOf(i);if(p>-1)mixSel.splice(p,1);else{if(mixSel.length===2)mixSel.shift();mixSel.push(i);}renderMix();},mixSel);
+ document.getElementById("slots").innerHTML=mixSel.length?mixSel.map(function(i){return chipHTML(i);}).join(" "):"ยังไม่ได้เลือก";
+ var out=document.getElementById("mixres");
+ if(!mixSel.length){out.innerHTML='<p class="hint">แตะธาตุของคู่ต่อสู้เพื่อดูผล</p>';return;}
+ var groups={};
+ IDS.forEach(function(a){var m=mult(a,mixSel),k=m.toFixed(3);(groups[k]=groups[k]||{m:m,l:[]}).l.push(a);});
+ var keys=Object.keys(groups).sort(function(a,b){return groups[b].m-groups[a].m;}),h="";
+ keys.forEach(function(k){var g=groups[k],m=g.m,cls=m>=2?"g-x256":m>1?"g-x16":m===1?"g-x1":m>=0.6?"g-low":"g-vlow";
+  var label=m>=2?"โดนตีหนักมาก":m>1?"โดนตีแรง":m===1?"ปกติ":m>=0.6?"ต้านได้":"ต้านหนัก";
+  h+='<div class="grp '+cls+'"><div class="m">×'+(Math.round(m*1000)/1000)+' · '+label+'</div>'+chipsHTML(g.l,true)+'</div>';});
+ out.innerHTML=h;
+}
+
+/* quiz */
+var MODES=[["weak","แพ้อะไร"],["strong","ตีแรงใส่ใคร"],["mult","กี่เท่า"]];
+var qMode="weak",q=null,answered=false,picked=[],stat={c:0,t:0,s:0,b:0};
+try{stat.b=parseInt(localStorage.getItem("pvpTypeBest")||"0",10)||0;}catch(e){}
+function rnd(a){return a[Math.floor(Math.random()*a.length)];}
+function newQ(){
+ answered=false;picked=[];
+ if(qMode==="weak"){var t=rnd(IDS);q={t:t,ans:weakTo(t)};}
+ else if(qMode==="strong"){var t2=rnd(IDS.filter(function(i){return SE[i].length>0;}));q={t:t2,ans:SE[t2].slice()};}
+ else{var a=rnd(IDS),d=rnd(IDS);q={a:a,d:d,ans:one(a,d)};}
+ renderQ();
+}
+function setStats(){
+ document.getElementById("sCorrect").textContent=stat.c;document.getElementById("sTotal").textContent=stat.t;
+ document.getElementById("sStreak").textContent=stat.s;document.getElementById("sBest").textContent=stat.b;
+}
+function renderModes(){
+ document.getElementById("modes").innerHTML=MODES.map(function(m){return '<button type="button" class="mode" data-m="'+m[0]+'" aria-pressed="'+(qMode===m[0])+'">'+m[1]+'</button>';}).join("");
+}
+function finish(ok){
+ answered=true;stat.t++;
+ if(ok){stat.c++;stat.s++;if(stat.s>stat.b){stat.b=stat.s;try{localStorage.setItem("pvpTypeBest",String(stat.b));}catch(e){}}}else{stat.s=0;}
+ setStats();renderQ();
+}
+function renderQ(){
+ var box=document.getElementById("qbox"),h="";
+ if(qMode==="mult"){
+  h+='<div class="q">'+chipHTML(q.a)+' ตี '+chipHTML(q.d)+' ได้กี่เท่า?</div><div class="mults">';
+  [1.6,1,0.625,0.390625].forEach(function(v){var cls=answered&&v===q.ans?"ok":answered&&picked[0]===v?"bad":"";h+='<button type="button" class="btn '+cls+'" data-v="'+v+'"'+(answered?" disabled":"")+'>×'+(Math.round(v*100)/100)+'</button>';});
+  h+='</div>';
+  if(answered){var good=picked[0]===q.ans;h+='<div class="fb '+(good?"good":"no")+'">'+(good?"ถูก ":"ไม่ถูก ")+'คำตอบคือ ×'+(Math.round(q.ans*100)/100)+'</div>';h+='<p style="margin:12px 0 0"><button class="btn" id="nextq" type="button">ข้อต่อไป</button></p>';}
+ }else{
+  var title=qMode==="weak"?"แพ้อะไรบ้าง?":"ตีแรงใส่ใครบ้าง?";
+  h+='<div class="q">'+chipHTML(q.t)+' '+title+' <span style="font-weight:400;color:var(--muted);font-size:.9rem">(เลือกทุกตัว)</span></div><div class="row">';
+  IDS.forEach(function(id){var cls="opt";var isAns=q.ans.indexOf(id)>-1,isPick=picked.indexOf(id)>-1;
+   if(answered){if(isAns&&isPick)cls+=" ok";else if(isAns)cls+=" miss";else if(isPick)cls+=" bad";}else if(isPick)cls+=" sel";
+   h+='<button type="button" class="chip '+cls+'" data-id="'+id+'" aria-pressed="'+isPick+'" style="background:'+T[id].c+';color:'+(T[id].w?"#FFFFFF":"#141A33")+'"'+(answered?" disabled":"")+'><span class="e" aria-hidden="true">'+T[id].e+'</span>'+T[id].th+'</button>';});
+  h+='</div>';
+  if(!answered){h+='<p style="margin:14px 0 0"><button class="btn" id="check" type="button">ตรวจคำตอบ</button></p>';}
+  else{var ok=picked.length===q.ans.length&&q.ans.every(function(x){return picked.indexOf(x)>-1;});
+   h+='<div class="fb '+(ok?"good":"no")+'">'+(ok?"ถูกทั้งหมด":"ยังไม่ครบ ขอบเขียว = ตอบถูก · ขอบแดงเส้นประ = ตกหล่น · ขอบแดงทึบ = เลือกผิด")+'</div>'+(qMode==="weak"?'<div class="mnemo" style="margin-top:10px">'+MNEMO[q.t]+'</div>':'')+'<p style="margin:12px 0 0"><button class="btn" id="nextq" type="button">ข้อต่อไป</button></p>';}
+ }
+ box.innerHTML=h;
+}
+function bindQuiz(){
+ document.getElementById("modes").addEventListener("click",function(ev){var b=ev.target.closest("button[data-m]");if(!b)return;qMode=b.getAttribute("data-m");renderModes();newQ();});
+ document.getElementById("qbox").addEventListener("click",function(ev){
+  var b=ev.target.closest("button");if(!b)return;
+  if(b.id==="nextq"){newQ();return;}
+  if(qMode==="mult"){if(b.hasAttribute("data-v")&&!answered){picked=[parseFloat(b.getAttribute("data-v"))];finish(picked[0]===q.ans);}return;}
+  if(b.id==="check"){var ok=picked.length===q.ans.length&&q.ans.every(function(x){return picked.indexOf(x)>-1;});finish(ok);return;}
+  if(b.id==="none"){picked=[];finish(q.ans.length===0);return;}
+  var id=b.getAttribute("data-id");if(id&&!answered){var p=picked.indexOf(id);if(p>-1)picked.splice(p,1);else picked.push(id);renderQ();}
+ });
+}
+
+/* tabs + hash */
+var VIEWS=[["loops","วงจร","🔺"],["types","ธาตุ","🔎"],["mix","สองธาตุ","➗"],["quiz","ฝึกท่อง","🧠"]];
+function show(name){
+ if(!VIEWS.some(function(v){return v[0]===name;}))name="loops";
+ VIEWS.forEach(function(v){document.getElementById("view-"+v[0]).classList.toggle("on",v[0]===name);});
+ document.querySelectorAll("#tabs button").forEach(function(b){if(b.getAttribute("data-v")===name)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
+ if(name==="mix")renderMix();
+ window.scrollTo(0,0);
+}
+function go(name){if(location.hash.replace("#","")!==name)location.hash=name;else show(name);}
+document.getElementById("tabs").innerHTML=VIEWS.map(function(v){return '<button type="button" data-v="'+v[0]+'"><span class="ic" aria-hidden="true">'+v[2]+'</span>'+v[1]+'</button>';}).join("");
+document.getElementById("tabs").addEventListener("click",function(ev){var b=ev.target.closest("button[data-v]");if(b)go(b.getAttribute("data-v"));});
+window.addEventListener("hashchange",function(){show(location.hash.replace("#",""));});
+
+document.getElementById("mixclear").addEventListener("click",function(){mixSel=[];renderMix();});
+renderLoops();renderDetail();renderModes();bindQuiz();setStats();newQ();
+show(location.hash.replace("#","")||"loops");
+})();
+</script>
+</body>
+</html>
