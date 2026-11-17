@@ -120,6 +120,7 @@ h3{font-size:1rem;font-weight:600}
 .ti{width:1.15em;height:1.15em;flex:none;display:inline-block;vertical-align:-.18em}
 .tb{width:1.5rem;height:1.5rem;flex:none;display:block}
 .tile .top{display:flex;align-items:center;justify-content:center;gap:5px}
+.tile .ti{width:1.5rem;height:1.5rem}
 .panel .hd .tb{width:2.1rem;height:2.1rem}
 .iconnote{color:var(--muted);font-size:.85rem;margin:14px 0 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .credit{color:var(--muted);font-size:.8rem;text-align:center;margin:22px 0 0}
@@ -195,12 +196,12 @@ h3{font-size:1rem;font-weight:600}
 (function(){
 "use strict";
 var TYPES=[
- ["normal","ปกติ","⚪","#A8A77A",0],["fire","ไฟ","🔥","#EE8130",0],["water","น้ำ","💧","#6390F0",0],
- ["electric","ไฟฟ้า","⚡","#F7D02C",0],["grass","หญ้า","🍃","#7AC74C",0],["ice","น้ำแข็ง","❄️","#96D9D6",0],
- ["fighting","ต่อสู้","🥊","#C22E28",1],["poison","พิษ","☠️","#A33EA1",1],["ground","ดิน","⛰️","#E2BF65",0],
- ["flying","บิน","🕊️","#A98FF3",0],["psychic","พลังจิต","🔮","#F95587",0],["bug","แมลง","🐛","#A6B91A",0],
- ["rock","หิน","🗿","#B6A136",0],["ghost","ผี","👻","#735797",1],["dragon","มังกร","🐉","#6F35FC",1],
- ["dark","ดาร์ก","🌙","#705746",1],["steel","เหล็ก","⚙️","#B7B7CE",0],["fairy","แฟรี่","✨","#D685AD",0]
+ ["normal","ปกติ","⚪","#828282",0],["fire","ไฟ","🔥","#E4613E",0],["water","น้ำ","💧","#3099E1",0],
+ ["electric","ไฟฟ้า","⚡","#DFBC28",0],["grass","หญ้า","🍃","#439837",0],["ice","น้ำแข็ง","❄️","#47C8C8",0],
+ ["fighting","ต่อสู้","🥊","#E49021",0],["poison","พิษ","☠️","#9354CB",1],["ground","ดิน","⛰️","#A4733C",0],
+ ["flying","บิน","🕊️","#74AAD0",0],["psychic","พลังจิต","🔮","#E96C8C",0],["bug","แมลง","🐛","#9F9F28",0],
+ ["rock","หิน","🗿","#A9A481",0],["ghost","ผี","👻","#6F4570",1],["dragon","มังกร","🐉","#576FBC",1],
+ ["dark","ดาร์ก","🌙","#4F4747",1],["steel","เหล็ก","⚙️","#74B0CB",0],["fairy","แฟรี่","✨","#E18CE1",0]
 ];
 var T={},IDS=[];
 TYPES.forEach(function(t){T[t[0]]={id:t[0],th:t[1],e:t[2],c:t[3],w:t[4]===1};IDS.push(t[0]);});
@@ -302,7 +303,7 @@ var selType="fire";
 function renderGrid(elId,onPick,sel){
  var el=document.getElementById(elId),h="";
  IDS.forEach(function(id){var t=T[id],fg=t.w?"#FFFFFF":"#141A33";
-  h+='<button type="button" class="tile" data-id="'+id+'" aria-pressed="'+(sel.indexOf(id)>-1)+'" style="background:'+t.c+';color:'+fg+'"><span class="top">'+badgeHTML(id)+'<span class="e" aria-hidden="true">'+t.e+'</span></span>'+t.th+'</button>';});
+  h+='<button type="button" class="tile" data-id="'+id+'" aria-pressed="'+(sel.indexOf(id)>-1)+'" style="background:'+t.c+';color:'+fg+'"><span class="top">'+glyphHTML(id,fg,t.c)+'<span class="e" aria-hidden="true">'+t.e+'</span></span>'+t.th+'</button>';});
  el.innerHTML=h;
  el.onclick=function(ev){var b=ev.target.closest("button[data-id]");if(b)onPick(b.getAttribute("data-id"));};
 }
