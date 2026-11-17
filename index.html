@@ -153,6 +153,19 @@ h3{font-size:1rem;font-weight:600}
 .dopt .tb{width:1.7rem;height:1.7rem}
 .dopt.ok{border-color:var(--win)}
 .dopt.no{opacity:.45}
+.mon{font-family:var(--head);font-weight:700;font-size:1.05rem}
+.foe .mon,.incoming .mon{font-size:1.3rem}
+.namesw{display:inline-flex;align-items:center;gap:7px;font-family:var(--head);font-weight:600;font-size:.9rem;border:2px solid var(--line);border-radius:12px;padding:7px 12px;background:var(--panel);cursor:pointer}
+.namesw input{width:18px;height:18px;accent-color:var(--focus)}
+.roster{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.roster summary{font-family:var(--head);font-weight:600;cursor:pointer}
+.rlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ritem{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:4px 4px 4px 10px;font-size:.85rem}
+.ritem .tb{width:1.1rem;height:1.1rem}
+.ritem button{border:0;background:transparent;color:var(--muted);font-size:1.05rem;line-height:1;padding:0 5px;cursor:pointer}
+.radd{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.radd input,.radd select{font:inherit;padding:8px 10px;border:2px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
+.radd input{flex:1;min-width:150px}
 .claim{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:14px;text-align:center}
 .claim .line{font-family:var(--head);font-weight:700;font-size:1.15rem;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
 .claim .says{margin-top:8px;font-family:var(--head);font-weight:700;font-size:1.3rem}
@@ -234,7 +247,9 @@ h3{font-size:1rem;font-weight:600}
     <h2 id="h-battle">สู้จริง</h2>
     <p class="lead" id="blead"></p>
     <div class="modes" id="bmodes"></div>
+    <p style="margin:0 0 12px"><label class="namesw"><input type="checkbox" id="bynamesw"> ถามเป็นชื่อตัว ไม่ใช่ชื่อธาตุ</label></p>
     <div class="panel" id="bbox" aria-live="polite"></div>
+    <details class="roster" id="roster"><summary id="rsum">รายชื่อตัวที่เอามาถาม</summary><div id="rbody"></div></details>
   </section>
 
   <p class="credit">สัญลักษณ์ธาตุเป็นงานวาดใหม่ของ <a href="https://github.com/partywhale/pokemon-type-icons">partywhale/pokemon-type-icons</a> ภายใต้สัญญาอนุญาต MIT</p>
@@ -467,6 +482,13 @@ function foeKey(d){return d.join("/");}
 function foeName(d){return d.map(function(i){return T[i].th;}).join(" / ");}
 function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function pickFoe(){
+ if(byName()){
+  var L=dexList(),t2=0,w2=L.map(function(m){var x=1+(MISS["m:"+m[0]]||0)*4;t2+=x;return x;});
+  var r2=Math.random()*t2;
+  for(var j=0;j<L.length;j++){r2-=w2[j];if(r2<=0){BT.foeMon=L[j][0];return monTypes(L[j]);}}
+  BT.foeMon=L[L.length-1][0];return monTypes(L[L.length-1]);
+ }
+ BT.foeMon=null;
  var tot=0,w=FOES.map(function(d){var x=1+(MISS[foeKey(d)]||0)*4;tot+=x;return x;});
  var r=Math.random()*tot;
  for(var i=0;i<FOES.length;i++){r-=w[i];if(r<=0)return FOES[i];}
@@ -518,7 +540,7 @@ function battleAnswer(id){
  if(BT.answered||!BT.live)return;
  BT.answered=true;BT.pick=id;stopTimer();freezeBar();
  BT.asked++;
- var m=id?mult(id,BT.foe):0,ok=!!id&&m===BT.best,key=foeKey(BT.foe);
+ var m=id?mult(id,BT.foe):0,ok=!!id&&m===BT.best,key=curFoeKey();
  if(ok){
   BT.hit++;BT.streak++;
   if(BT.streak>BT.top)BT.top=BT.streak;
@@ -526,7 +548,7 @@ function battleAnswer(id){
  }else{
   BT.streak=0;MISS[key]=(MISS[key]||0)+1;
   BT.meHP-=BACK_DMG;
-  BT.log.push({foe:BT.foe.slice(),pick:id,m:m,best:BT.best});
+  BT.log.push({foe:BT.foe.slice(),mon:BT.foeMon,pick:id,m:m,best:BT.best});
  }
  if(id)BT.foeHP-=Math.round(m*DMG_UNIT);
  if(BT.foeHP<=0){BT.foeHP=0;BT.ko++;}
@@ -559,8 +581,7 @@ function renderBattle(){
    +'<span>ถูก <b>'+BT.hit+'</b>/<b>'+BT.asked+'</b></span>'
    +'<span>ต่อเนื่อง <b>'+BT.streak+'</b></span><span>สูงสุด <b>'+BBEST+'</b></span></div>';
  h+=hpHTML("","เลือดคู่ต่อสู้",BT.foeHP,FOE_HP);
- h+='<div class="foe">'+BT.foe.map(function(i){return badgeHTML(i);}).join("")
-   +'<span class="nm">'+foeName(BT.foe)+'</span></div>';
+ h+=foeBlock();
  h+='<div class="btimer"><i id="btbar"></i></div>';
  h+='<p class="q" style="margin:4px 0 0">ใช้ท่าธาตุอะไรตีคุ้มที่สุด?</p>';
  h+='<div class="bopts">';
@@ -597,7 +618,7 @@ function battleEndHTML(){
   h+='<div class="misslist"><h3>ข้อที่พลาด จะเอากลับมาถามบ่อยขึ้น</h3>';
   BT.log.forEach(function(r){
    var bestOnes=IDS.filter(function(a){return mult(a,r.foe)===r.best;});
-   h+='<div class="missrow">เจอ '+r.foe.map(function(i){return chipHTML(i,true);}).join(" ")
+   h+='<div class="missrow">เจอ '+monLabel(r.mon,r.foe)
      +' กดไป '+(r.pick?chipHTML(r.pick,true)+" "+multText(r.m):"หมดเวลา")
      +' · ที่ดีที่สุดคือ '+bestOnes.slice(0,4).map(function(i){return chipHTML(i,true);}).join(" ")+' '+multText(r.best)+'</div>';
   });
@@ -641,6 +662,17 @@ function pickAtkType(){
  return IDS[IDS.length-1];
 }
 function makeDefs(atk){
+ if(byName()){
+  var L=dexList();
+  var g2=L.filter(function(m){return mult(atk,monTypes(m))<1;});
+  var f2=g2.length?g2[Math.floor(Math.random()*g2.length)]:L[Math.floor(Math.random()*L.length)];
+  var r2=shuffle(L.filter(function(m){return m[0]!==f2[0];})).slice(0,5);
+  var a2=shuffle([f2].concat(r2));
+  var b2=99;a2.forEach(function(m){var x=mult(atk,monTypes(m));if(x<b2)b2=x;});
+  BT.defNames=a2.map(function(m){return m[0];});
+  return {defs:a2.map(monTypes),best:b2};
+ }
+ BT.defNames=null;
  var good=FOES.filter(function(d){return mult(atk,d)<1;});
  var first=good.length?good[Math.floor(Math.random()*good.length)]:FOES[Math.floor(Math.random()*FOES.length)];
  var fk=foeKey(first);
@@ -711,14 +743,7 @@ function renderDefense(){
  h+='<div class="btimer"><i id="btbar"></i></div>';
  h+='<p class="q" style="margin:4px 0 0">สลับตัวไหนเข้าไปรับ?</p>';
  h+='<div class="dopts">';
- BT.defs.forEach(function(d,i){
-  var cls="dopt";
-  if(BT.answered)cls+=(mult(BT.atk,d)===BT.best)?" ok":" no";
-  h+='<button type="button" class="'+cls+'" data-d="'+i+'"'+(BT.answered?" disabled":"")+'>'
-    +d.map(function(t){return badgeHTML(t);}).join("")+'<span>'+defName(d)+'</span>'
-    +(BT.answered?'<span class="hint" style="margin:0 0 0 auto">'+multText(mult(BT.atk,d))+'</span>':'')
-    +'</button>';
- });
+ BT.defs.forEach(function(d,i){h+=defOptHTML(d,i,"data-d");});
  h+='</div>';
  if(BT.answered){
   var ok=BT.pick!==null&&BT.lastTake===BT.best;
@@ -852,7 +877,7 @@ function svAnswer(v){
  var ok,m;
  if(BT.kind==="a"){
   m=(v===null)?0:mult(v,BT.foe);ok=(v!==null&&m===BT.best);BT.pick=v;
-  if(!ok)BT.log.push({k:"a",foe:BT.foe.slice(),pick:v,m:m,best:BT.best,
+  if(!ok)BT.log.push({k:"a",foe:BT.foe.slice(),mon:BT.foeMon,pick:v,m:m,best:BT.best,
                       bestOnes:BT.opts.filter(function(x){return mult(x,BT.foe)===BT.best;})});
  }else{
   if(v===null){m=0;BT.defs.forEach(function(d){var x=mult(BT.atk,d);if(x>m)m=x;});BT.pick=null;ok=false;}
@@ -878,7 +903,7 @@ function renderSV(){
    h+='<div class="misslist"><h3>ข้อที่พลาด จะเอากลับมาถามบ่อยขึ้น</h3>';
    BT.log.forEach(function(r){
     if(r.k==="a"){
-     h+='<div class="missrow">บุก เจอ '+r.foe.map(function(i){return chipHTML(i,true);}).join("")
+     h+='<div class="missrow">บุก เจอ '+monLabel(r.mon,r.foe)
        +' กดไป '+(r.pick?chipHTML(r.pick,true)+" "+multText(r.m):"หมดเวลา")
        +' · ที่ดีที่สุดคือ '+r.bestOnes.map(function(i){return chipHTML(i,true);}).join(" ")+' '+multText(r.best)+'</div>';
     }else{
@@ -897,7 +922,7 @@ function renderSV(){
  h2+=hpHTML("me","เลือดเรา",BT.meHP,SV_HP);
  if(BT.kind==="a"){
   h2+='<p class="hint" style="margin:0"><span class="kindtag">บุก</span> เจอคู่ต่อสู้</p>';
-  h2+='<div class="foe">'+BT.foe.map(function(i){return badgeHTML(i);}).join("")+'<span class="nm">'+foeName(BT.foe)+'</span></div>';
+  h2+=foeBlock();
  }else{
   h2+='<p class="hint" style="margin:0"><span class="kindtag">รับ</span> ศัตรูกำลังจะปล่อยท่าธาตุ</p>';
   h2+='<div class="incoming">'+badgeHTML(BT.atk)+'<span class="nm">'+T[BT.atk].th+'</span></div>';
@@ -914,13 +939,7 @@ function renderSV(){
   h2+='</div>';
  }else{
   h2+='<p class="q" style="margin:4px 0 0">สลับตัวไหนเข้าไปรับ?</p><div class="dopts">';
-  BT.defs.forEach(function(d,i){
-   var cls="dopt";
-   if(BT.answered)cls+=(mult(BT.atk,d)===BT.best)?" ok":" no";
-   h2+='<button type="button" class="'+cls+'" data-sd="'+i+'"'+(BT.answered?" disabled":"")+'>'
-     +d.map(function(t){return badgeHTML(t);}).join("")+'<span>'+defName(d)+'</span>'
-     +(BT.answered?'<span class="hint" style="margin:0 0 0 auto">'+multText(mult(BT.atk,d))+'</span>':'')+'</button>';
-  });
+  BT.defs.forEach(function(d,i){h2+=defOptHTML(d,i,"data-sd");});
   h2+='</div>';
  }
  if(BT.answered){
@@ -953,6 +972,55 @@ function renderSV(){
  box.innerHTML=h2;
 }
 
+var DEX_DEFAULT=[["Abomasnow","grass","ice"],["Alolan Ninetales","ice","fairy"],["Altaria","dragon","flying"],["Annihilape","fighting","ghost"],["Araquanid","water","bug"],["Articuno","ice","flying"],["Azumarill","water","fairy"],["Bastiodon","rock","steel"],["Beedrill","bug","poison"],["Carbink","rock","fairy"],["Charizard","fire","flying"],["Clodsire","poison","ground"],["Cobalion","steel","fighting"],["Cresselia","psychic"],["Dewgong","water","ice"],["Dialga","steel","dragon"],["Diggersby","normal","ground"],["Dragonite","dragon","flying"],["Drapion","poison","dark"],["Empoleon","water","steel"],["Escavalier","bug","steel"],["Excadrill","ground","steel"],["Feraligatr","water"],["Forretress","bug","steel"],["Froslass","ice","ghost"],["Galarian Corsola","ghost"],["Galarian Stunfisk","ground","steel"],["Galvantula","bug","electric"],["Garchomp","dragon","ground"],["Genesect","bug","steel"],["Giratina Altered","ghost","dragon"],["Giratina Origin","ghost","dragon"],["Gligar","ground","flying"],["Goodra","dragon"],["Groudon","ground"],["Guzzlord","dark","dragon"],["Gyarados","water","flying"],["Ho-Oh","fire","flying"],["Kyogre","water"],["Kyurem","dragon","ice"],["Landorus Therian","ground","flying"],["Lanturn","water","electric"],["Lickitung","normal"],["Lugia","psychic","flying"],["Mandibuzz","dark","flying"],["Mantine","water","flying"],["Medicham","fighting","psychic"],["Melmetal","steel"],["Metagross","steel","psychic"],["Mewtwo","psychic"],["Nidoqueen","poison","ground"],["Noctowl","normal","flying"],["Obstagoon","dark","normal"],["Palkia","water","dragon"],["Pelipper","water","flying"],["Pidgeot","normal","flying"],["Registeel","steel"],["Reshiram","dragon","fire"],["Rhyperior","ground","rock"],["Sableye","dark","ghost"],["Scizor","bug","steel"],["Scrafty","dark","fighting"],["Serperior","grass"],["Shadow Machamp","fighting"],["Skarmory","steel","flying"],["Snorlax","normal"],["Steelix","steel","ground"],["Swampert","water","ground"],["Talonflame","fire","flying"],["Tapu Fini","water","fairy"],["Togekiss","fairy","flying"],["Toxicroak","poison","fighting"],["Trevenant","ghost","grass"],["Tyranitar","rock","dark"],["Umbreon","dark"],["Venomoth","bug","poison"],["Venusaur","grass","poison"],["Virizion","grass","fighting"],["Volcarona","bug","fire"],["Walrein","ice","water"],["Whiscash","water","ground"],["Wigglytuff","normal","fairy"],["Xerneas","fairy"],["Yveltal","dark","flying"],["Zacian","fairy"],["Zekrom","dragon","electric"]];
+var DEXUSER={hide:[],add:[]},BYNAME=true;
+try{var _d=JSON.parse(localStorage.getItem("pvpDex")||"null");if(_d&&_d.hide&&_d.add)DEXUSER=_d;}catch(e){}
+try{var _b=localStorage.getItem("pvpByName");if(_b!==null)BYNAME=(_b==="1");}catch(e){}
+function saveDex(){try{localStorage.setItem("pvpDex",JSON.stringify(DEXUSER));localStorage.setItem("pvpByName",BYNAME?"1":"0");}catch(e){}}
+function dexList(){
+ return DEX_DEFAULT.filter(function(r){return DEXUSER.hide.indexOf(r[0])<0;}).concat(DEXUSER.add);
+}
+function byName(){return BYNAME&&dexList().length>=8;}
+function monTypes(r){return r.slice(1);}
+function curFoeKey(){return BT.foeMon?("m:"+BT.foeMon):foeKey(BT.foe);}
+function foeBlock(){
+ if(BT.foeMon&&!BT.answered)
+  return '<div class="foe"><span class="mon">'+BT.foeMon+'</span><span class="hint" style="margin:0">ธาตุอะไร นึกเอง</span></div>';
+ return '<div class="foe">'+(BT.foeMon?'<span class="mon">'+BT.foeMon+'</span>':'')
+  +BT.foe.map(function(i){return badgeHTML(i);}).join("")+'<span class="nm">'+foeName(BT.foe)+'</span></div>';
+}
+function defOptHTML(d,i,attr){
+ var cls="dopt";
+ if(BT.answered)cls+=(mult(BT.atk,d)===BT.best)?" ok":" no";
+ var nm=(BT.defNames&&BT.defNames[i])?'<span class="mon">'+BT.defNames[i]+'</span>':'';
+ var body=(BT.defNames&&!BT.answered)?nm
+  :(nm+d.map(function(t){return badgeHTML(t);}).join("")+'<span>'+defName(d)+'</span>');
+ return '<button type="button" class="'+cls+'" '+attr+'="'+i+'"'+(BT.answered?" disabled":"")+'>'+body
+  +(BT.answered?'<span class="hint" style="margin:0 0 0 auto">'+multText(mult(BT.atk,d))+'</span>':'')+'</button>';
+}
+function monLabel(name,types){
+ return (name?'<b>'+name+'</b> ':'')+types.map(function(t){return chipHTML(t,true);}).join("");
+}
+
+/* หน้าจัดการรายชื่อ */
+function renderRoster(){
+ var sum=document.getElementById("rsum"),body=document.getElementById("rbody");
+ if(!body)return;
+ var L=dexList();
+ sum.textContent="รายชื่อตัวที่เอามาถาม "+L.length+" ตัว แตะเพื่อเพิ่มหรือเอาออก";
+ var h='<p class="hint" style="margin:8px 0 0">ตัวไหนไม่เจอในลีกที่เล่น กดกากบาทเอาออกได้ · เพิ่มเองได้ไม่จำกัด · เก็บไว้ในเครื่องนี้เท่านั้น</p>';
+ h+='<div class="radd"><input id="rname" type="text" placeholder="ชื่อตัว เช่น Azumarill" maxlength="40">';
+ h+='<select id="rt1">'+IDS.map(function(i){return '<option value="'+i+'">'+T[i].th+'</option>';}).join("")+'</select>';
+ h+='<select id="rt2"><option value="">ไม่มีธาตุที่สอง</option>'+IDS.map(function(i){return '<option value="'+i+'">'+T[i].th+'</option>';}).join("")+'</select>';
+ h+='<button class="btn" id="radd" type="button">เพิ่ม</button></div>';
+ h+='<div class="rlist">'+L.map(function(r){
+   return '<span class="ritem">'+monTypes(r).map(function(t){return badgeHTML(t);}).join("")+r[0]
+     +'<button type="button" data-rm="'+r[0].replace(/"/g,"&quot;")+'" aria-label="เอา '+r[0]+' ออก">×</button></span>';
+  }).join("")+'</div>';
+ if(DEXUSER.hide.length)h+='<p style="margin:12px 0 0"><button class="btn ghost" id="rreset" type="button">เอารายชื่อที่ลบไปคืนทั้งหมด ('+DEXUSER.hide.length+')</button></p>';
+ body.innerHTML=h;
+}
+
 /* tabs + hash */
 var VIEWS=[["loops","วงจร","🔺"],["types","ธาตุ","🔎"],["mix","สองธาตุ","➗"],["quiz","ฝึกท่อง","📝"],["battle","สู้","🎮"]];
 function show(name){
@@ -970,7 +1038,35 @@ document.getElementById("tabs").addEventListener("click",function(ev){var b=ev.t
 window.addEventListener("hashchange",function(){show(location.hash.replace("#",""));});
 
 document.getElementById("mixclear").addEventListener("click",function(){mixSel=[];renderMix();});
-renderLoops();renderDetail();renderModes();bindQuiz();setStats();newQ();renderBModes();
+renderLoops();renderDetail();renderModes();bindQuiz();setStats();newQ();renderBModes();renderRoster();
+(function(){
+ var sw=document.getElementById("bynamesw");
+ sw.checked=BYNAME;
+ sw.addEventListener("change",function(){
+  BYNAME=sw.checked;saveDex();stopTimer();BT.over=0;BT.live=false;BT.foeMon=null;BT.defNames=null;startBattle();
+ });
+ document.getElementById("rbody").addEventListener("click",function(ev){
+  var b=ev.target.closest("button");if(!b)return;
+  if(b.id==="radd"){
+   var n=document.getElementById("rname").value.trim();
+   if(!n)return;
+   var t1=document.getElementById("rt1").value,t2=document.getElementById("rt2").value;
+   if(dexList().some(function(r){return r[0].toLowerCase()===n.toLowerCase();}))return;
+   var row=[n,t1];if(t2&&t2!==t1)row.push(t2);
+   DEXUSER.add.push(row);
+   var hi=DEXUSER.hide.indexOf(n);if(hi>-1)DEXUSER.hide.splice(hi,1);
+   saveDex();document.getElementById("rname").value="";renderRoster();return;
+  }
+  if(b.id==="rreset"){DEXUSER.hide=[];saveDex();renderRoster();return;}
+  var rm=b.getAttribute("data-rm");
+  if(rm){
+   var ai=-1;DEXUSER.add.forEach(function(r,i){if(r[0]===rm)ai=i;});
+   if(ai>-1)DEXUSER.add.splice(ai,1);
+   else if(DEXUSER.hide.indexOf(rm)<0)DEXUSER.hide.push(rm);
+   saveDex();renderRoster();
+  }
+ });
+})();
 show(location.hash.replace("#","")||"loops");
 })();
 </script>
