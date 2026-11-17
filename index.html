@@ -147,6 +147,23 @@ h3{font-size:1rem;font-weight:600}
 .bopt.ok{border-color:var(--ink)}
 .bopt.no{opacity:.45}
 .combo{font-family:var(--head);font-weight:700;color:var(--win)}
+.dopts{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:480px){.dopts{grid-template-columns:repeat(2,1fr)}}
+.dopt{display:flex;align-items:center;gap:8px;border:3px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--panel);color:var(--ink);font-family:var(--head);font-weight:600;font-size:.95rem;text-align:left}
+.dopt .tb{width:1.7rem;height:1.7rem}
+.dopt.ok{border-color:var(--win)}
+.dopt.no{opacity:.45}
+.claim{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:14px;text-align:center}
+.claim .line{font-family:var(--head);font-weight:700;font-size:1.15rem;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.claim .says{margin-top:8px;font-family:var(--head);font-weight:700;font-size:1.3rem}
+.tfbtns{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tfbtns .btn{font-size:1.15rem;padding:16px 10px}
+.tfbtns .btn.no{background:transparent;color:var(--ink);border:2px solid var(--line)}
+.lives{font-size:1.1rem;letter-spacing:2px}
+.kindtag{display:inline-block;font-family:var(--head);font-size:.78rem;font-weight:600;border-radius:8px;padding:2px 8px;background:var(--res-bg);color:var(--res)}
+.incoming{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.incoming .tb{width:2.4rem;height:2.4rem}
+.incoming .nm{font-family:var(--head);font-weight:700;font-size:1.1rem}
 .bend{text-align:center;padding:6px 0}
 .bend .big{font-family:var(--head);font-weight:700;font-size:1.5rem;margin-bottom:4px}
 .misslist{margin-top:10px}
@@ -215,7 +232,8 @@ h3{font-size:1rem;font-weight:600}
   </section>
   <section id="view-battle" class="view" aria-labelledby="h-battle">
     <h2 id="h-battle">สู้จริง</h2>
-    <p class="lead">เจอคู่ต่อสู้แล้วเลือกธาตุที่<b>ตีคุ้มที่สุด</b>จากหกตัวเลือก ล้มให้ครบห้าตัวก่อนเลือดเราหมด · ตอบผิดหรือช้าโดนตีกลับ</p>
+    <p class="lead" id="blead"></p>
+    <div class="modes" id="bmodes"></div>
     <div class="panel" id="bbox" aria-live="polite"></div>
   </section>
 
@@ -394,9 +412,12 @@ function renderQ(){
  var box=document.getElementById("qbox"),h="";
  if(qMode==="mult"){
   h+='<div class="q">'+chipHTML(q.a)+' ตี '+chipHTML(q.d)+' ได้กี่เท่า?</div><div class="mults">';
-  [1.6,1,0.625,0.390625].forEach(function(v){var cls=answered&&v===q.ans?"ok":answered&&picked[0]===v?"bad":"";h+='<button type="button" class="btn '+cls+'" data-v="'+v+'"'+(answered?" disabled":"")+'>×'+(Math.round(v*100)/100)+'</button>';});
+  [1.6,1,0.625,0.390625].forEach(function(v){var cls=answered&&v===q.ans?"ok":answered&&picked[0]===v?"bad":"";h+='<button type="button" class="btn '+cls+'" data-v="'+v+'"'+(answered?" disabled":"")+'>×'+(Math.round(v*1000)/1000)+'</button>';});
   h+='</div>';
-  if(answered){var good=picked[0]===q.ans;h+='<div class="fb '+(good?"good":"no")+'">'+(good?"ถูก ":"ไม่ถูก ")+'คำตอบคือ ×'+(Math.round(q.ans*100)/100)+'</div>';h+='<p style="margin:12px 0 0"><button class="btn" id="nextq" type="button">ข้อต่อไป</button></p>';}
+  if(answered){var good=picked[0]===q.ans;
+   h+='<div class="fb '+(good?"good":"no")+'">'+(good?"ถูก ":"ไม่ถูก ")+'คำตอบคือ ×'+(Math.round(q.ans*1000)/1000)
+     +(good?'':'<div class="mnemo" style="margin:8px 0 0">'+pairHint(q.a,q.d)+'</div>')+'</div>';
+   h+='<p style="margin:12px 0 0"><button class="btn" id="nextq" type="button">ข้อต่อไป</button></p>';}
  }else{
   var title=qMode==="weak"?"แพ้อะไรบ้าง?":"ตีแรงใส่ใครบ้าง?";
   h+='<div class="q">'+chipHTML(q.t)+' '+title+' <span style="font-weight:400;color:var(--muted);font-size:.9rem">(เลือกทุกตัว)</span></div><div class="row">';
@@ -406,7 +427,14 @@ function renderQ(){
   h+='</div>';
   if(!answered){h+='<p style="margin:14px 0 0"><button class="btn" id="check" type="button">ตรวจคำตอบ</button></p>';}
   else{var ok=picked.length===q.ans.length&&q.ans.every(function(x){return picked.indexOf(x)>-1;});
-   h+='<div class="fb '+(ok?"good":"no")+'">'+(ok?"ถูกทั้งหมด":"ยังไม่ครบ ขอบเขียว = ตอบถูก · ขอบแดงเส้นประ = ตกหล่น · ขอบแดงทึบ = เลือกผิด")+'</div>'+(qMode==="weak"?'<div class="mnemo" style="margin-top:10px">'+MNEMO[q.t]+'</div>':'')+'<p style="margin:12px 0 0"><button class="btn" id="nextq" type="button">ข้อต่อไป</button></p>';}
+   h+='<div class="fb '+(ok?"good":"no")+'">'+(ok?"ถูกทั้งหมด":"ยังไม่ครบ ขอบเขียว = ตอบถูก · ขอบแดงเส้นประ = ตกหล่น · ขอบแดงทึบ = เลือกผิด")
+     +(ok?'':'<br>คำตอบที่ถูกคือ '+q.ans.map(function(x){return chipHTML(x,true);}).join(" "))+'</div>';
+   if(qMode==="weak")h+='<div class="mnemo" style="margin-top:10px">'+MNEMO[q.t]+'</div>';
+   else if(!ok){
+    var teach=q.ans.filter(function(x){return picked.indexOf(x)<0;}).slice(0,3);
+    if(teach.length)h+='<div class="mnemo" style="margin-top:10px">'+teach.map(function(x){return MNEMO[x];}).join("<br>")+'</div>';
+   }
+   h+='<p style="margin:12px 0 0"><button class="btn" id="nextq" type="button">ข้อต่อไป</button></p>';}
  }
  box.innerHTML=h;
 }
@@ -425,10 +453,13 @@ function bindQuiz(){
 /* ---------- โหมดสู้ ---------- */
 var ROUND_LEN=5,TURN_MS=6000,FOE_HP=100,ME_HP=100,BACK_DMG=18,DMG_UNIT=35;
 var BT={live:false,foe:null,opts:[],best:1,foeHP:0,meHP:0,ko:0,hit:0,asked:0,streak:0,top:0,answered:false,over:0,pick:null,timer:0,log:[]};
-var BBEST=0,MISS={};
+var BBEST=0,DBEST=0,TFBEST=0,SVBEST=0,MISS={};
 try{BBEST=parseInt(localStorage.getItem("pvpBattleBest")||"0",10)||0;}catch(e){}
+try{DBEST=parseInt(localStorage.getItem("pvpDefenseBest")||"0",10)||0;}catch(e){}
+try{TFBEST=parseInt(localStorage.getItem("pvpTfBest")||"0",10)||0;}catch(e){}
+try{SVBEST=parseInt(localStorage.getItem("pvpSurviveBest")||"0",10)||0;}catch(e){}
 try{MISS=JSON.parse(localStorage.getItem("pvpBattleMiss")||"{}")||{};}catch(e){MISS={};}
-function saveBattle(){try{localStorage.setItem("pvpBattleBest",String(BBEST));localStorage.setItem("pvpBattleMiss",JSON.stringify(MISS));}catch(e){}}
+function saveBattle(){try{localStorage.setItem("pvpBattleBest",String(BBEST));localStorage.setItem("pvpDefenseBest",String(DBEST));localStorage.setItem("pvpTfBest",String(TFBEST));localStorage.setItem("pvpSurviveBest",String(SVBEST));localStorage.setItem("pvpBattleMiss",JSON.stringify(MISS));}catch(e){}}
 
 var FOES=(function(){var a=[],i,j;for(i=0;i<IDS.length;i++)a.push([IDS[i]]);
  for(i=0;i<IDS.length;i++)for(j=i+1;j<IDS.length;j++)a.push([IDS[i],IDS[j]]);return a;})();
@@ -456,6 +487,10 @@ function whyHTML(att,foe){
 }
 
 function startBattle(){
+ BT.ms=TURN_MS;
+ if(BMODE==="tf")return startTF();
+ if(BMODE==="sv")return startSV();
+ if(BMODE==="def")return startDefense();
  BT.live=true;BT.meHP=ME_HP;BT.ko=0;BT.hit=0;BT.asked=0;BT.streak=0;BT.top=0;BT.over=0;BT.log=[];
  BT.foe=pickFoe();BT.foeHP=FOE_HP;nextTurn();
 }
@@ -466,18 +501,22 @@ function nextTurn(){
 function stopTimer(){clearTimeout(BT.timer);BT.timer=0;}
 function armTimer(){
  stopTimer();
- BT.timer=setTimeout(function(){if(!BT.answered&&BT.live)battleAnswer(null);},TURN_MS);
+ var ms=BT.ms||TURN_MS;
+ BT.timer=setTimeout(function(){if(!BT.answered&&BT.live){
+  if(BMODE==="sv")svAnswer(null);else if(BMODE==="def")defAnswer(null);else battleAnswer(null);}},ms);
  var bar=document.getElementById("btbar");
  if(!bar)return;
- bar.className="";bar.style.width="100%";
+ bar.className="";bar.style.transitionDuration=(ms/1000)+"s";bar.style.width="100%";
  requestAnimationFrame(function(){requestAnimationFrame(function(){
   var b=document.getElementById("btbar");if(!b)return;b.className="run";b.style.width="0%";});});
 }
-function battleAnswer(id){
- if(BT.answered||!BT.live)return;
- BT.answered=true;BT.pick=id;stopTimer();
+function freezeBar(){
  var bar=document.getElementById("btbar");
  if(bar){var w=bar.getBoundingClientRect().width;bar.className="";bar.style.width=w+"px";}
+}
+function battleAnswer(id){
+ if(BT.answered||!BT.live)return;
+ BT.answered=true;BT.pick=id;stopTimer();freezeBar();
  BT.asked++;
  var m=id?mult(id,BT.foe):0,ok=!!id&&m===BT.best,key=foeKey(BT.foe);
  if(ok){
@@ -499,6 +538,9 @@ function battleAnswer(id){
  renderBattle();
 }
 function battleNext(){
+ if(BMODE==="tf")return tfTurn();
+ if(BMODE==="sv")return svTurn();
+ if(BMODE==="def")return defTurn();
  if(BT.foeHP<=0){BT.foe=pickFoe();BT.foeHP=FOE_HP;}
  nextTurn();
 }
@@ -507,6 +549,9 @@ function hpHTML(cls,label,now,max){
   +'<div class="hp '+cls+'"><i style="width:'+Math.max(0,Math.round(now/max*100))+'%"></i></div></div>';
 }
 function renderBattle(){
+ if(BMODE==="tf")return renderTF();
+ if(BMODE==="sv")return renderSV();
+ if(BMODE==="def")return renderDefense();
  var box=document.getElementById("bbox");if(!box)return;
  if(BT.over){box.innerHTML=battleEndHTML();return;}
  var h='<div class="bwrap">';
@@ -564,8 +609,349 @@ document.getElementById("bbox").addEventListener("click",function(ev){
  var b=ev.target.closest("button");if(!b)return;
  if(b.id==="bagain"){startBattle();return;}
  if(b.id==="bnext"){battleNext();return;}
- var id=b.getAttribute("data-b");if(id)battleAnswer(id);
+ var id=b.getAttribute("data-b");if(id){battleAnswer(id);return;}
+ var di=b.getAttribute("data-d");if(di!==null){defAnswer(parseInt(di,10));return;}
+ var sa=b.getAttribute("data-sa");if(sa){svAnswer(sa);return;}
+ var sd=b.getAttribute("data-sd");if(sd!==null){svAnswer(parseInt(sd,10));return;}
+ var tf=b.getAttribute("data-tf");if(tf!==null)tfAnswer(tf==="1");
 });
+document.getElementById("bmodes").addEventListener("click",function(ev){
+ var b=ev.target.closest("button[data-bm]");if(!b)return;
+ var m=b.getAttribute("data-bm");if(m===BMODE)return;
+ BMODE=m;stopTimer();BT.over=0;BT.live=false;renderBModes();startBattle();
+});
+
+/* ---------- โหมดรับ ---------- */
+var DEF_LEN=8,DEF_UNIT=14;
+var BMODE="atk";
+var BLEAD={atk:'เจอคู่ต่อสู้แล้วเลือกธาตุที่<b>ตีคุ้มที่สุด</b>จากหกตัวเลือก ล้มให้ครบห้าตัวก่อนเลือดเราหมด · ตอบผิดหรือช้าโดนตีกลับ',
+           def:'ศัตรูกำลังจะปล่อยท่า เลือกว่า<b>สลับตัวไหนเข้าไปรับ</b>ให้เจ็บน้อยที่สุด รับให้ไหวครบแปดท่า · นี่คือครึ่งที่คนมักไม่ได้ฝึก',
+           tf:'อ่านประโยคแล้วกด <b>จริง</b> หรือ <b>มั่ว</b> ยี่สิบข้อรวด ตอบถูกไปต่อทันที ตอบผิดจะหยุดอธิบายให้',
+           sv:'สลับโจทย์บุกกับรับไปเรื่อย ๆ <b>เวลาต่อข้อหดลงทุกข้อ</b> ผิดทีเสียเลือด ไปได้ไกลแค่ไหนก่อนเลือดหมด'};
+function renderBModes(){
+ var el=document.getElementById("bmodes");if(!el)return;
+ el.innerHTML=[["atk","บุก"],["def","รับ"],["tf","จริงหรือมั่ว"],["sv","เอาตัวรอด"]].map(function(m){
+  return '<button type="button" class="mode" data-bm="'+m[0]+'" aria-pressed="'+(BMODE===m[0])+'">'+m[1]+'</button>';}).join("");
+ var ld=document.getElementById("blead");if(ld)ld.innerHTML=BLEAD[BMODE];
+}
+function pickAtkType(){
+ var tot=0,w=IDS.map(function(a){var x=1+(MISS["d:"+a]||0)*4;tot+=x;return x;});
+ var r=Math.random()*tot;
+ for(var i=0;i<IDS.length;i++){r-=w[i];if(r<=0)return IDS[i];}
+ return IDS[IDS.length-1];
+}
+function makeDefs(atk){
+ var good=FOES.filter(function(d){return mult(atk,d)<1;});
+ var first=good.length?good[Math.floor(Math.random()*good.length)]:FOES[Math.floor(Math.random()*FOES.length)];
+ var fk=foeKey(first);
+ var rest=shuffle(FOES.filter(function(d){return foeKey(d)!==fk;})).slice(0,5);
+ var all=shuffle([first].concat(rest));
+ var best=99;all.forEach(function(d){var m=mult(atk,d);if(m<best)best=m;});
+ return {defs:all,best:best};
+}
+function takeWord(m){return m>=1.6?"เจ็บหนัก":m>1?"เจ็บ":m===1?"เข้าเต็ม ๆ":m>=0.6?"ต้านไว้ได้":"แทบไม่เจ็บ";}
+function whyDef(def,atk){
+ var out=[];
+ def.forEach(function(t){
+  var m=one(atk,t);
+  if(m===0.390625)out.push(T[t].th+"ต้าน"+T[atk].th+"สองชั้น");
+  else if(m===0.625)out.push(T[t].th+"ต้าน"+T[atk].th);
+ });
+ return out.join(" · ");
+}
+function startDefense(){
+ BT.live=true;BT.meHP=ME_HP;BT.wave=0;BT.hit=0;BT.asked=0;BT.streak=0;BT.top=0;BT.over=0;BT.log=[];
+ defTurn();
+}
+function defTurn(){
+ BT.atk=pickAtkType();
+ var o=makeDefs(BT.atk);BT.defs=o.defs;BT.best=o.best;BT.answered=false;BT.pick=null;
+ renderBattle();armTimer();
+}
+function defAnswer(ix){
+ if(BT.answered||!BT.live)return;
+ BT.answered=true;stopTimer();
+ var bar=document.getElementById("btbar");
+ if(bar){var w=bar.getBoundingClientRect().width;bar.className="";bar.style.width=w+"px";}
+ BT.asked++;BT.wave++;
+ var m,ok;
+ if(ix===null){
+  m=0;BT.defs.forEach(function(d){var x=mult(BT.atk,d);if(x>m)m=x;});
+  BT.pick=null;ok=false;
+ }else{
+  BT.pick=ix;m=mult(BT.atk,BT.defs[ix]);ok=(m===BT.best);
+ }
+ BT.lastTake=m;
+ var key="d:"+BT.atk;
+ if(ok){
+  BT.hit++;BT.streak++;if(BT.streak>BT.top)BT.top=BT.streak;
+  if(MISS[key])MISS[key]=Math.max(0,MISS[key]-1);
+ }else{
+  BT.streak=0;MISS[key]=(MISS[key]||0)+1;
+  BT.log.push({atk:BT.atk,pick:(ix===null?null:BT.defs[ix].slice()),m:m,best:BT.best,
+               bestDefs:BT.defs.filter(function(d){return mult(BT.atk,d)===BT.best;})});
+ }
+ BT.meHP-=Math.round(m*DEF_UNIT);
+ if(BT.meHP<=0){BT.meHP=0;BT.over=-1;}
+ else if(BT.wave>=DEF_LEN){BT.over=1;}
+ if(BT.over){BT.live=false;if(BT.top>DBEST)DBEST=BT.top;}
+ saveBattle();
+ renderBattle();
+}
+function defName(d){return d.map(function(i){return T[i].th;}).join(" / ");}
+function renderDefense(){
+ var box=document.getElementById("bbox");if(!box)return;
+ if(BT.over){box.innerHTML=defEndHTML();return;}
+ var h='<div class="bwrap">';
+ h+='<div class="bstats"><span>รับไหว <b>'+BT.wave+'</b>/'+DEF_LEN+'</span>'
+   +'<span>ถูก <b>'+BT.hit+'</b>/<b>'+BT.asked+'</b></span>'
+   +'<span>ต่อเนื่อง <b>'+BT.streak+'</b></span><span>สูงสุด <b>'+DBEST+'</b></span></div>';
+ h+='<p class="hint" style="margin:0">ศัตรูกำลังจะปล่อยท่าธาตุ</p>';
+ h+='<div class="incoming">'+badgeHTML(BT.atk)+'<span class="nm">'+T[BT.atk].th+'</span></div>';
+ h+='<div class="btimer"><i id="btbar"></i></div>';
+ h+='<p class="q" style="margin:4px 0 0">สลับตัวไหนเข้าไปรับ?</p>';
+ h+='<div class="dopts">';
+ BT.defs.forEach(function(d,i){
+  var cls="dopt";
+  if(BT.answered)cls+=(mult(BT.atk,d)===BT.best)?" ok":" no";
+  h+='<button type="button" class="'+cls+'" data-d="'+i+'"'+(BT.answered?" disabled":"")+'>'
+    +d.map(function(t){return badgeHTML(t);}).join("")+'<span>'+defName(d)+'</span>'
+    +(BT.answered?'<span class="hint" style="margin:0 0 0 auto">'+multText(mult(BT.atk,d))+'</span>':'')
+    +'</button>';
+ });
+ h+='</div>';
+ if(BT.answered){
+  var ok=BT.pick!==null&&BT.lastTake===BT.best;
+  var bestDefs=BT.defs.filter(function(d){return mult(BT.atk,d)===BT.best;});
+  h+='<div class="fb '+(ok?"good":"no")+'">';
+  if(BT.pick===null)h+='<b>หมดเวลา</b> ตัวที่อยู่หน้ากินเต็ม '+multText(BT.lastTake)+' '+takeWord(BT.lastTake);
+  else h+='<b>กิน '+multText(BT.lastTake)+' '+takeWord(BT.lastTake)+'</b>'+(ok?' เจ็บน้อยที่สุดเท่าที่เลือกได้แล้ว':'');
+  if(!ok)h+='<br>ที่ควรสลับเข้าไปคือ '+bestDefs.map(function(d){return d.map(function(t){return chipHTML(t,true);}).join("");}).join(" หรือ ")+' '+multText(BT.best);
+  var why=whyDef(bestDefs[0],BT.atk);
+  if(why)h+='<div class="mnemo" style="margin:8px 0 0">'+why+'</div>';
+  h+='</div>';
+  if(ok&&BT.streak>=3)h+='<p class="combo" style="margin:6px 0 0">ต่อเนื่อง '+BT.streak+' ท่า</p>';
+  h+='<p style="margin:10px 0 0"><button class="btn" id="bnext" type="button">ท่าต่อไป</button></p>';
+ }
+ h+=hpHTML("me","เลือดเรา",BT.meHP,ME_HP);
+ h+='</div>';
+ box.innerHTML=h;
+}
+function defEndHTML(){
+ var h='<div class="bend"><div class="big">'+(BT.over>0?"รับไหวครบแปดท่า":"เลือดหมดที่ท่าที่ "+BT.wave)+'</div>';
+ h+='<p class="hint" style="margin:0">เลือกถูก '+BT.hit+' จาก '+BT.asked+' ท่า · ต่อเนื่องสูงสุด '+BT.top+' (สถิติ '+DBEST+')'
+   +(BT.over>0?' · เลือดเหลือ '+BT.meHP:'')+'</p>';
+ h+='<p style="margin:14px 0 0"><button class="btn" id="bagain" type="button">เล่นอีกครั้ง</button></p></div>';
+ if(BT.log.length){
+  h+='<div class="misslist"><h3>ท่าที่รับพลาด จะเอากลับมาถามบ่อยขึ้น</h3>';
+  BT.log.forEach(function(r){
+   h+='<div class="missrow">ท่า '+chipHTML(r.atk,true)
+     +' รับด้วย '+(r.pick?r.pick.map(function(t){return chipHTML(t,true);}).join("")+" "+multText(r.m):"หมดเวลา")
+     +' · ที่ดีที่สุดคือ '+r.bestDefs.slice(0,2).map(function(d){return d.map(function(t){return chipHTML(t,true);}).join("");}).join(" หรือ ")+' '+multText(r.best)+'</div>';
+  });
+  h+='</div>';
+ }
+ return h;
+}
+
+/* ---------- คำอธิบายตอนพลาด ใช้ร่วมกันทุกโหมด ---------- */
+function pairHint(a,d){
+ var m=one(a,d);
+ if(m===1.6)return MNEMO[d];
+ if(m===0.390625)return T[d].th+"ต้าน"+T[a].th+"สองชั้น ตีแทบไม่เข้า";
+ if(m===0.625)return T[d].th+"ต้าน"+T[a].th;
+ return T[d].th+"ไม่ได้กลัว"+T[a].th+" และก็ไม่ได้ต้านด้วย";
+}
+function pairLine(a,d){
+ return chipHTML(a,true)+' ตี '+chipHTML(d,true)+' ได้ '+multText(one(a,d))+' '+multWord(one(a,d));
+}
+
+/* ---------- เกมเล็ก: จริงหรือมั่ว ---------- */
+var TF_LEN=20;
+function bucketOf(m){return m===1.6?"แรง":m===1?"ปกติ":"ต้าน";}
+function bucketLabel(b){return b==="แรง"?"ตีแรง ×1.6":b==="ปกติ"?"ธรรมดา ×1":"โดนต้าน ×0.625 หรือน้อยกว่า";}
+function startTF(){
+ BT.live=true;BT.hit=0;BT.asked=0;BT.streak=0;BT.top=0;BT.over=0;BT.log=[];BT.t0=Date.now();
+ tfTurn();
+}
+function tfTurn(){
+ BT.a=IDS[Math.floor(Math.random()*IDS.length)];
+ BT.d=IDS[Math.floor(Math.random()*IDS.length)];
+ BT.realB=bucketOf(one(BT.a,BT.d));
+ BT.claim=BT.realB;
+ if(Math.random()<0.5){
+  var o=["แรง","ปกติ","ต้าน"].filter(function(x){return x!==BT.realB;});
+  BT.claim=o[Math.floor(Math.random()*o.length)];
+ }
+ BT.answered=false;BT.pick=null;
+ renderBattle();
+}
+function tfAnswer(say){
+ if(BT.answered||!BT.live)return;
+ BT.answered=true;BT.pick=say;BT.asked++;
+ var truth=(BT.claim===BT.realB),ok=(say===truth);
+ if(ok){BT.hit++;BT.streak++;if(BT.streak>BT.top)BT.top=BT.streak;}
+ else{BT.streak=0;BT.log.push({a:BT.a,d:BT.d,claim:BT.claim,real:BT.realB});}
+ if(BT.asked>=TF_LEN){
+  BT.live=false;BT.over=(BT.hit>=Math.ceil(TF_LEN*0.8))?1:-1;
+  BT.secs=Math.round((Date.now()-BT.t0)/100)/10;
+  if(BT.hit>TFBEST)TFBEST=BT.hit;
+  saveBattle();
+ }
+ renderBattle();
+ if(ok&&!BT.over)setTimeout(function(){if(BMODE==="tf"&&BT.answered&&!BT.over&&BT.live)tfTurn();},600);
+}
+function renderTF(){
+ var box=document.getElementById("bbox");if(!box)return;
+ if(BT.over){
+  var h='<div class="bend"><div class="big">'+(BT.over>0?"ผ่าน":"ยังไม่ผ่าน")+'</div>'
+   +'<p class="hint" style="margin:0">ถูก '+BT.hit+' จาก '+TF_LEN+' ข้อ · ใช้เวลา '+BT.secs+' วินาที · ต่อเนื่องสูงสุด '+BT.top+' (สถิติ '+TFBEST+')</p>'
+   +'<p style="margin:14px 0 0"><button class="btn" id="bagain" type="button">เล่นอีกครั้ง</button></p></div>';
+  if(BT.log.length){
+   h+='<div class="misslist"><h3>ข้อที่พลาด</h3>';
+   BT.log.forEach(function(r){h+='<div class="missrow">'+pairLine(r.a,r.d)+' · ประโยคบอกว่า "'+bucketLabel(r.claim)+'"</div>';});
+   h+='</div>';
+  }
+  box.innerHTML=h;return;
+ }
+ var h2='<div class="bwrap">';
+ h2+='<div class="bstats"><span>ข้อ <b>'+(BT.asked+(BT.answered?0:1))+'</b>/'+TF_LEN+'</span>'
+   +'<span>ถูก <b>'+BT.hit+'</b></span><span>ต่อเนื่อง <b>'+BT.streak+'</b></span><span>สูงสุด <b>'+TFBEST+'</b></span></div>';
+ h2+='<div class="claim"><div class="line">'+chipHTML(BT.a)+'<span aria-hidden="true">➜</span>'+chipHTML(BT.d)+'</div>'
+   +'<div class="says">"'+bucketLabel(BT.claim)+'"</div></div>';
+ h2+='<div class="tfbtns"><button class="btn" type="button" data-tf="1">จริง</button>'
+   +'<button class="btn no" type="button" data-tf="0">มั่ว</button></div>';
+ if(BT.answered){
+  var truth=(BT.claim===BT.realB),ok=(BT.pick===truth);
+  h2+='<div class="fb '+(ok?"good":"no")+'"><b>'+(ok?"ถูก":"ผิด")+'</b> · '+pairLine(BT.a,BT.d);
+  if(!ok)h2+='<div class="mnemo" style="margin:8px 0 0">'+pairHint(BT.a,BT.d)+'</div>';
+  h2+='</div>';
+  if(!ok)h2+='<p style="margin:10px 0 0"><button class="btn" id="bnext" type="button">ข้อต่อไป</button></p>';
+ }
+ h2+='</div>';
+ box.innerHTML=h2;
+}
+
+/* ---------- เกมเล็ก: เอาตัวรอด ---------- */
+var SV_START=6000,SV_MIN=1500,SV_STEP=250,SV_HP=100,SV_DMG=20;
+function startSV(){
+ BT.live=true;BT.meHP=SV_HP;BT.hit=0;BT.asked=0;BT.streak=0;BT.top=0;BT.over=0;BT.log=[];
+ svTurn();
+}
+function svTurn(){
+ BT.kind=Math.random()<0.5?"a":"d";
+ if(BT.kind==="a"){BT.foe=pickFoe();var o=makeOpts(BT.foe);BT.opts=o.opts;BT.best=o.best;}
+ else{BT.atk=pickAtkType();var o2=makeDefs(BT.atk);BT.defs=o2.defs;BT.best=o2.best;}
+ BT.answered=false;BT.pick=null;
+ BT.ms=Math.max(SV_MIN,SV_START-BT.asked*SV_STEP);
+ renderBattle();armTimer();
+}
+function svAnswer(v){
+ if(BT.answered||!BT.live)return;
+ BT.answered=true;stopTimer();freezeBar();BT.asked++;
+ var ok,m;
+ if(BT.kind==="a"){
+  m=(v===null)?0:mult(v,BT.foe);ok=(v!==null&&m===BT.best);BT.pick=v;
+  if(!ok)BT.log.push({k:"a",foe:BT.foe.slice(),pick:v,m:m,best:BT.best,
+                      bestOnes:BT.opts.filter(function(x){return mult(x,BT.foe)===BT.best;})});
+ }else{
+  if(v===null){m=0;BT.defs.forEach(function(d){var x=mult(BT.atk,d);if(x>m)m=x;});BT.pick=null;ok=false;}
+  else{m=mult(BT.atk,BT.defs[v]);ok=(m===BT.best);BT.pick=v;}
+  if(!ok)BT.log.push({k:"d",atk:BT.atk,pick:(v===null?null:BT.defs[v].slice()),m:m,best:BT.best,
+                      bestDefs:BT.defs.filter(function(d){return mult(BT.atk,d)===BT.best;})});
+ }
+ BT.lastTake=m;
+ if(ok){
+  BT.hit++;BT.streak++;if(BT.streak>BT.top)BT.top=BT.streak;
+  if(BT.streak%5===0)BT.meHP=Math.min(SV_HP,BT.meHP+10);
+ }else{BT.streak=0;BT.meHP-=SV_DMG;}
+ if(BT.meHP<=0){BT.meHP=0;BT.over=-1;BT.live=false;if(BT.hit>SVBEST)SVBEST=BT.hit;saveBattle();}
+ renderBattle();
+}
+function renderSV(){
+ var box=document.getElementById("bbox");if(!box)return;
+ if(BT.over){
+  var h='<div class="bend"><div class="big">ไปได้ '+BT.hit+' ข้อ</div>'
+   +'<p class="hint" style="margin:0">ตอบถูก '+BT.hit+' จาก '+BT.asked+' ข้อ · ต่อเนื่องสูงสุด '+BT.top+' · สถิติ '+SVBEST+'</p>'
+   +'<p style="margin:14px 0 0"><button class="btn" id="bagain" type="button">เล่นอีกครั้ง</button></p></div>';
+  if(BT.log.length){
+   h+='<div class="misslist"><h3>ข้อที่พลาด จะเอากลับมาถามบ่อยขึ้น</h3>';
+   BT.log.forEach(function(r){
+    if(r.k==="a"){
+     h+='<div class="missrow">บุก เจอ '+r.foe.map(function(i){return chipHTML(i,true);}).join("")
+       +' กดไป '+(r.pick?chipHTML(r.pick,true)+" "+multText(r.m):"หมดเวลา")
+       +' · ที่ดีที่สุดคือ '+r.bestOnes.map(function(i){return chipHTML(i,true);}).join(" ")+' '+multText(r.best)+'</div>';
+    }else{
+     h+='<div class="missrow">รับ ท่า '+chipHTML(r.atk,true)
+       +' รับด้วย '+(r.pick?r.pick.map(function(t){return chipHTML(t,true);}).join("")+" "+multText(r.m):"หมดเวลา")
+       +' · ที่ดีที่สุดคือ '+r.bestDefs.slice(0,2).map(function(d){return d.map(function(t){return chipHTML(t,true);}).join("");}).join(" หรือ ")+' '+multText(r.best)+'</div>';
+    }
+   });
+   h+='</div>';
+  }
+  box.innerHTML=h;return;
+ }
+ var h2='<div class="bwrap">';
+ h2+='<div class="bstats"><span>ผ่านแล้ว <b>'+BT.hit+'</b></span><span>ต่อเนื่อง <b>'+BT.streak+'</b></span>'
+   +'<span>สถิติ <b>'+SVBEST+'</b></span><span>เวลาต่อข้อ <b>'+(Math.round(BT.ms/100)/10)+'</b> วิ</span></div>';
+ h2+=hpHTML("me","เลือดเรา",BT.meHP,SV_HP);
+ if(BT.kind==="a"){
+  h2+='<p class="hint" style="margin:0"><span class="kindtag">บุก</span> เจอคู่ต่อสู้</p>';
+  h2+='<div class="foe">'+BT.foe.map(function(i){return badgeHTML(i);}).join("")+'<span class="nm">'+foeName(BT.foe)+'</span></div>';
+ }else{
+  h2+='<p class="hint" style="margin:0"><span class="kindtag">รับ</span> ศัตรูกำลังจะปล่อยท่าธาตุ</p>';
+  h2+='<div class="incoming">'+badgeHTML(BT.atk)+'<span class="nm">'+T[BT.atk].th+'</span></div>';
+ }
+ h2+='<div class="btimer"><i id="btbar"></i></div>';
+ if(BT.kind==="a"){
+  h2+='<p class="q" style="margin:4px 0 0">ใช้ท่าธาตุอะไรตีคุ้มที่สุด?</p><div class="bopts">';
+  BT.opts.forEach(function(id){
+   var t=T[id],fg=t.w?"#FFFFFF":"#141A33",cls="bopt";
+   if(BT.answered)cls+=(mult(id,BT.foe)===BT.best)?" ok":" no";
+   h2+='<button type="button" class="'+cls+'" data-sa="'+id+'" style="background:'+t.c+';color:'+fg+'"'
+     +(BT.answered?" disabled":"")+'>'+glyphHTML(id,fg,t.c)+'<span aria-hidden="true">'+t.e+'</span>'+t.th+'</button>';
+  });
+  h2+='</div>';
+ }else{
+  h2+='<p class="q" style="margin:4px 0 0">สลับตัวไหนเข้าไปรับ?</p><div class="dopts">';
+  BT.defs.forEach(function(d,i){
+   var cls="dopt";
+   if(BT.answered)cls+=(mult(BT.atk,d)===BT.best)?" ok":" no";
+   h2+='<button type="button" class="'+cls+'" data-sd="'+i+'"'+(BT.answered?" disabled":"")+'>'
+     +d.map(function(t){return badgeHTML(t);}).join("")+'<span>'+defName(d)+'</span>'
+     +(BT.answered?'<span class="hint" style="margin:0 0 0 auto">'+multText(mult(BT.atk,d))+'</span>':'')+'</button>';
+  });
+  h2+='</div>';
+ }
+ if(BT.answered){
+  var ok=(BT.kind==="a")?(BT.pick!==null&&BT.lastTake===BT.best):(BT.pick!==null&&BT.lastTake===BT.best);
+  h2+='<div class="fb '+(ok?"good":"no")+'">';
+  if(BT.kind==="a"){
+   var bestOnes=BT.opts.filter(function(x){return mult(x,BT.foe)===BT.best;});
+   if(BT.pick===null)h2+='<b>หมดเวลา</b> เสียเลือด '+SV_DMG;
+   else h2+='<b>'+multText(BT.lastTake)+' '+multWord(BT.lastTake)+'</b>'+(ok?' ดีที่สุดแล้ว':' · เสียเลือด '+SV_DMG);
+   if(!ok){
+    h2+='<br>ที่ควรกดคือ '+bestOnes.map(function(i){return chipHTML(i,true);}).join(" ")+' '+multText(BT.best);
+    var why=whyHTML(bestOnes[0],BT.foe);
+    if(why)h2+='<div class="mnemo" style="margin:8px 0 0">'+why+'</div>';
+   }
+  }else{
+   var bestDefs=BT.defs.filter(function(d){return mult(BT.atk,d)===BT.best;});
+   if(BT.pick===null)h2+='<b>หมดเวลา</b> ตัวที่อยู่หน้ากินเต็ม '+multText(BT.lastTake);
+   else h2+='<b>กิน '+multText(BT.lastTake)+' '+takeWord(BT.lastTake)+'</b>'+(ok?' เจ็บน้อยที่สุดแล้ว':' · เสียเลือด '+SV_DMG);
+   if(!ok){
+    h2+='<br>ที่ควรสลับเข้าไปคือ '+bestDefs.map(function(d){return d.map(function(t){return chipHTML(t,true);}).join("");}).join(" หรือ ")+' '+multText(BT.best);
+    var why2=whyDef(bestDefs[0],BT.atk);
+    if(why2)h2+='<div class="mnemo" style="margin:8px 0 0">'+why2+'</div>';
+   }
+  }
+  h2+='</div>';
+  if(ok&&BT.streak%5===0)h2+='<p class="combo" style="margin:6px 0 0">ต่อเนื่อง '+BT.streak+' ข้อ ได้เลือดคืน 10</p>';
+  h2+='<p style="margin:10px 0 0"><button class="btn" id="bnext" type="button">ข้อต่อไป</button></p>';
+ }
+ h2+='</div>';
+ box.innerHTML=h2;
+}
 
 /* tabs + hash */
 var VIEWS=[["loops","วงจร","🔺"],["types","ธาตุ","🔎"],["mix","สองธาตุ","➗"],["quiz","ฝึกท่อง","📝"],["battle","สู้","🎮"]];
@@ -584,7 +970,7 @@ document.getElementById("tabs").addEventListener("click",function(ev){var b=ev.t
 window.addEventListener("hashchange",function(){show(location.hash.replace("#",""));});
 
 document.getElementById("mixclear").addEventListener("click",function(){mixSel=[];renderMix();});
-renderLoops();renderDetail();renderModes();bindQuiz();setStats();newQ();
+renderLoops();renderDetail();renderModes();bindQuiz();setStats();newQ();renderBModes();
 show(location.hash.replace("#","")||"loops");
 })();
 </script>
