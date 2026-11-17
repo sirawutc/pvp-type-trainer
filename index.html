@@ -153,6 +153,10 @@ h3{font-size:1rem;font-weight:600}
 .dopt .tb{width:1.7rem;height:1.7rem}
 .dopt.ok{border-color:var(--win)}
 .dopt.no{opacity:.45}
+.who{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 16px}
+.who .lab{font-family:var(--head);font-weight:600;font-size:.88rem;color:var(--muted)}
+.who select{font:inherit;font-family:var(--head);font-weight:600;padding:7px 10px;border:2px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);max-width:45vw}
+.who button{font-family:var(--head);font-weight:600;font-size:.82rem;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:7px 10px}
 .mon{font-family:var(--head);font-weight:700;font-size:1.05rem}
 .foe .mon,.incoming .mon{font-size:1.3rem}
 .namesw{display:inline-flex;align-items:center;gap:7px;font-family:var(--head);font-weight:600;font-size:.9rem;border:2px solid var(--line);border-radius:12px;padding:7px 12px;background:var(--panel);cursor:pointer}
@@ -216,6 +220,8 @@ h3{font-size:1rem;font-weight:600}
   <h1>จำธาตุให้ขึ้นใจ</h1>
   <p class="lead">สำหรับ PvP: ท่อง “ธาตุนี้แพ้อะไร” ก่อน แล้วค่อยดูว่าตีแรงใส่ใคร ใช้เวลาสิบนาทีต่อวัน เริ่มจากวงจรสามเหลี่ยม</p>
 
+  <div class="who"><span class="lab">คนเล่น</span><select id="whosel" aria-label="เลือกคนเล่น"></select><button type="button" id="whoadd">เพิ่มคน</button><button type="button" id="whoren">เปลี่ยนชื่อ</button><button type="button" id="whodel">ลบ</button></div>
+
   <section id="view-loops" class="view" aria-labelledby="h-loops">
     <h2 id="h-loops">วงจรสามเหลี่ยม: จำสามธาตุในหนึ่งประโยค</h2>
     <p class="lead">ลูกศรชี้ไปที่ธาตุที่ <b>โดนตีแรง</b> เช่น ไฟ ➜ หญ้า คือไฟตีหญ้าแรง ลูกศรสุดท้ายวนกลับมาที่ธาตุแรกเสมอ พอจำได้สามธาตุก็ได้สามคู่ในครั้งเดียว</p>
@@ -260,6 +266,38 @@ h3{font-size:1rem;font-weight:600}
 <script>
 (function(){
 "use strict";
+
+/* ---------- คนเล่น ---------- */
+/* ทุกอย่างที่จำไว้ในเครื่อง (สถิติ ข้อที่พลาด รายชื่อตัว) ผูกกับคนเล่นที่เลือกอยู่
+   สองคนเล่นเครื่องเดียวกันจึงไม่ปนกัน */
+var PROF_KEYS=["pvpTypeBest","pvpBattleBest","pvpDefenseBest","pvpTfBest",
+               "pvpSurviveBest","pvpBattleMiss","pvpDex","pvpByName"];
+var PROFS=[],CURP="";
+try{var _p=JSON.parse(localStorage.getItem("pvpProfiles")||"null");if(_p&&_p.length)PROFS=_p;}catch(e){}
+try{CURP=localStorage.getItem("pvpCurrent")||"";}catch(e){}
+function saveProfs(){try{localStorage.setItem("pvpProfiles",JSON.stringify(PROFS));localStorage.setItem("pvpCurrent",CURP);}catch(e){}}
+if(!PROFS.length){
+ PROFS=[{id:"p1",name:"ผม"}];CURP="p1";
+ /* ของเดิมที่เล่นไว้ก่อนมีระบบคนเล่น ยกเข้าคนแรก ไม่ให้สถิติหาย */
+ PROF_KEYS.forEach(function(k){
+  try{var v=localStorage.getItem(k);
+      if(v!==null&&localStorage.getItem("p:p1:"+k)===null)localStorage.setItem("p:p1:"+k,v);}catch(e){}
+ });
+ saveProfs();
+}
+if(!PROFS.some(function(p){return p.id===CURP;}))CURP=PROFS[0].id;
+function K(n){return "p:"+CURP+":"+n;}
+function LS(n){try{return localStorage.getItem(K(n));}catch(e){return null;}}
+function LSSET(n,v){try{localStorage.setItem(K(n),v);}catch(e){}}
+function newProfId(){
+ var i=1,ids=PROFS.map(function(p){return p.id;});
+ while(ids.indexOf("p"+i)>-1)i++;
+ return "p"+i;
+}
+function curName(){
+ for(var i=0;i<PROFS.length;i++)if(PROFS[i].id===CURP)return PROFS[i].name;
+ return "";
+}
 var TYPES=[
  ["normal","ปกติ","⚪","#828282",0],["fire","ไฟ","🔥","#E4613E",0],["water","น้ำ","💧","#3099E1",0],
  ["electric","ไฟฟ้า","⚡","#DFBC28",0],["grass","หญ้า","🍃","#439837",0],["ice","น้ำแข็ง","❄️","#47C8C8",0],
@@ -402,7 +440,7 @@ function renderMix(){
 /* quiz */
 var MODES=[["weak","แพ้อะไร"],["strong","ตีแรงใส่ใคร"],["mult","กี่เท่า"]];
 var qMode="weak",q=null,answered=false,picked=[],stat={c:0,t:0,s:0,b:0};
-try{stat.b=parseInt(localStorage.getItem("pvpTypeBest")||"0",10)||0;}catch(e){}
+try{stat.b=parseInt(LS("pvpTypeBest")||"0",10)||0;}catch(e){}
 function rnd(a){return a[Math.floor(Math.random()*a.length)];}
 function newQ(){
  answered=false;picked=[];
@@ -420,7 +458,7 @@ function renderModes(){
 }
 function finish(ok){
  answered=true;stat.t++;
- if(ok){stat.c++;stat.s++;if(stat.s>stat.b){stat.b=stat.s;try{localStorage.setItem("pvpTypeBest",String(stat.b));}catch(e){}}}else{stat.s=0;}
+ if(ok){stat.c++;stat.s++;if(stat.s>stat.b){stat.b=stat.s;LSSET("pvpTypeBest",String(stat.b));}}else{stat.s=0;}
  setStats();renderQ();
 }
 function renderQ(){
@@ -469,12 +507,16 @@ function bindQuiz(){
 var ROUND_LEN=5,TURN_MS=6000,FOE_HP=100,ME_HP=100,BACK_DMG=18,DMG_UNIT=35;
 var BT={live:false,foe:null,opts:[],best:1,foeHP:0,meHP:0,ko:0,hit:0,asked:0,streak:0,top:0,answered:false,over:0,pick:null,timer:0,log:[]};
 var BBEST=0,DBEST=0,TFBEST=0,SVBEST=0,MISS={};
-try{BBEST=parseInt(localStorage.getItem("pvpBattleBest")||"0",10)||0;}catch(e){}
-try{DBEST=parseInt(localStorage.getItem("pvpDefenseBest")||"0",10)||0;}catch(e){}
-try{TFBEST=parseInt(localStorage.getItem("pvpTfBest")||"0",10)||0;}catch(e){}
-try{SVBEST=parseInt(localStorage.getItem("pvpSurviveBest")||"0",10)||0;}catch(e){}
-try{MISS=JSON.parse(localStorage.getItem("pvpBattleMiss")||"{}")||{};}catch(e){MISS={};}
-function saveBattle(){try{localStorage.setItem("pvpBattleBest",String(BBEST));localStorage.setItem("pvpDefenseBest",String(DBEST));localStorage.setItem("pvpTfBest",String(TFBEST));localStorage.setItem("pvpSurviveBest",String(SVBEST));localStorage.setItem("pvpBattleMiss",JSON.stringify(MISS));}catch(e){}}
+BBEST=parseInt(LS("pvpBattleBest")||"0",10)||0;
+DBEST=parseInt(LS("pvpDefenseBest")||"0",10)||0;
+TFBEST=parseInt(LS("pvpTfBest")||"0",10)||0;
+SVBEST=parseInt(LS("pvpSurviveBest")||"0",10)||0;
+try{MISS=JSON.parse(LS("pvpBattleMiss")||"{}")||{};}catch(e){MISS={};}
+function saveBattle(){
+ LSSET("pvpBattleBest",String(BBEST));LSSET("pvpDefenseBest",String(DBEST));
+ LSSET("pvpTfBest",String(TFBEST));LSSET("pvpSurviveBest",String(SVBEST));
+ LSSET("pvpBattleMiss",JSON.stringify(MISS));
+}
 
 var FOES=(function(){var a=[],i,j;for(i=0;i<IDS.length;i++)a.push([IDS[i]]);
  for(i=0;i<IDS.length;i++)for(j=i+1;j<IDS.length;j++)a.push([IDS[i],IDS[j]]);return a;})();
@@ -974,9 +1016,21 @@ function renderSV(){
 
 var DEX_DEFAULT=[["Abomasnow","grass","ice"],["Alolan Ninetales","ice","fairy"],["Altaria","dragon","flying"],["Annihilape","fighting","ghost"],["Araquanid","water","bug"],["Articuno","ice","flying"],["Azumarill","water","fairy"],["Bastiodon","rock","steel"],["Beedrill","bug","poison"],["Carbink","rock","fairy"],["Charizard","fire","flying"],["Clodsire","poison","ground"],["Cobalion","steel","fighting"],["Cresselia","psychic"],["Dewgong","water","ice"],["Dialga","steel","dragon"],["Diggersby","normal","ground"],["Dragonite","dragon","flying"],["Drapion","poison","dark"],["Empoleon","water","steel"],["Escavalier","bug","steel"],["Excadrill","ground","steel"],["Feraligatr","water"],["Forretress","bug","steel"],["Froslass","ice","ghost"],["Galarian Corsola","ghost"],["Galarian Stunfisk","ground","steel"],["Galvantula","bug","electric"],["Garchomp","dragon","ground"],["Genesect","bug","steel"],["Giratina Altered","ghost","dragon"],["Giratina Origin","ghost","dragon"],["Gligar","ground","flying"],["Goodra","dragon"],["Groudon","ground"],["Guzzlord","dark","dragon"],["Gyarados","water","flying"],["Ho-Oh","fire","flying"],["Kyogre","water"],["Kyurem","dragon","ice"],["Landorus Therian","ground","flying"],["Lanturn","water","electric"],["Lickitung","normal"],["Lugia","psychic","flying"],["Mandibuzz","dark","flying"],["Mantine","water","flying"],["Medicham","fighting","psychic"],["Melmetal","steel"],["Metagross","steel","psychic"],["Mewtwo","psychic"],["Nidoqueen","poison","ground"],["Noctowl","normal","flying"],["Obstagoon","dark","normal"],["Palkia","water","dragon"],["Pelipper","water","flying"],["Pidgeot","normal","flying"],["Registeel","steel"],["Reshiram","dragon","fire"],["Rhyperior","ground","rock"],["Sableye","dark","ghost"],["Scizor","bug","steel"],["Scrafty","dark","fighting"],["Serperior","grass"],["Shadow Machamp","fighting"],["Skarmory","steel","flying"],["Snorlax","normal"],["Steelix","steel","ground"],["Swampert","water","ground"],["Talonflame","fire","flying"],["Tapu Fini","water","fairy"],["Togekiss","fairy","flying"],["Toxicroak","poison","fighting"],["Trevenant","ghost","grass"],["Tyranitar","rock","dark"],["Umbreon","dark"],["Venomoth","bug","poison"],["Venusaur","grass","poison"],["Virizion","grass","fighting"],["Volcarona","bug","fire"],["Walrein","ice","water"],["Whiscash","water","ground"],["Wigglytuff","normal","fairy"],["Xerneas","fairy"],["Yveltal","dark","flying"],["Zacian","fairy"],["Zekrom","dragon","electric"]];
 var DEXUSER={hide:[],add:[]},BYNAME=true;
-try{var _d=JSON.parse(localStorage.getItem("pvpDex")||"null");if(_d&&_d.hide&&_d.add)DEXUSER=_d;}catch(e){}
-try{var _b=localStorage.getItem("pvpByName");if(_b!==null)BYNAME=(_b==="1");}catch(e){}
-function saveDex(){try{localStorage.setItem("pvpDex",JSON.stringify(DEXUSER));localStorage.setItem("pvpByName",BYNAME?"1":"0");}catch(e){}}
+try{var _d=JSON.parse(LS("pvpDex")||"null");if(_d&&_d.hide&&_d.add)DEXUSER=_d;}catch(e){}
+var _b=LS("pvpByName");if(_b!==null)BYNAME=(_b==="1");
+function saveDex(){LSSET("pvpDex",JSON.stringify(DEXUSER));LSSET("pvpByName",BYNAME?"1":"0");}
+function loadProfile(){
+ stat={c:0,t:0,s:0,b:0};
+ stat.b=parseInt(LS("pvpTypeBest")||"0",10)||0;
+ BBEST=parseInt(LS("pvpBattleBest")||"0",10)||0;
+ DBEST=parseInt(LS("pvpDefenseBest")||"0",10)||0;
+ TFBEST=parseInt(LS("pvpTfBest")||"0",10)||0;
+ SVBEST=parseInt(LS("pvpSurviveBest")||"0",10)||0;
+ MISS={};try{MISS=JSON.parse(LS("pvpBattleMiss")||"{}")||{};}catch(e){MISS={};}
+ DEXUSER={hide:[],add:[]};
+ try{var d=JSON.parse(LS("pvpDex")||"null");if(d&&d.hide&&d.add)DEXUSER=d;}catch(e){}
+ BYNAME=true;var b=LS("pvpByName");if(b!==null)BYNAME=(b==="1");
+}
 function dexList(){
  return DEX_DEFAULT.filter(function(r){return DEXUSER.hide.indexOf(r[0])<0;}).concat(DEXUSER.add);
 }
@@ -1039,6 +1093,43 @@ window.addEventListener("hashchange",function(){show(location.hash.replace("#","
 
 document.getElementById("mixclear").addEventListener("click",function(){mixSel=[];renderMix();});
 renderLoops();renderDetail();renderModes();bindQuiz();setStats();newQ();renderBModes();renderRoster();
+function renderWho(){
+ var sel=document.getElementById("whosel");
+ sel.innerHTML=PROFS.map(function(p){
+  return '<option value="'+p.id+'"'+(p.id===CURP?" selected":"")+'>'+p.name+'</option>';}).join("");
+ document.getElementById("whodel").disabled=(PROFS.length<2);
+}
+function switchProfile(id){
+ CURP=id;saveProfs();loadProfile();
+ stopTimer();BT.over=0;BT.live=false;BT.foeMon=null;BT.defNames=null;
+ setStats();newQ();renderWho();renderBModes();renderRoster();
+ document.getElementById("bynamesw").checked=BYNAME;
+ if(document.getElementById("view-battle").classList.contains("on"))startBattle();
+ else document.getElementById("bbox").innerHTML='';
+}
+(function(){
+ renderWho();
+ document.getElementById("whosel").addEventListener("change",function(){switchProfile(this.value);});
+ document.getElementById("whoadd").addEventListener("click",function(){
+  var n=(prompt("ชื่อคนเล่นใหม่")||"").trim();
+  if(!n)return;
+  if(PROFS.some(function(p){return p.name===n;})){alert("มีชื่อนี้อยู่แล้ว");return;}
+  var id=newProfId();PROFS.push({id:id,name:n});saveProfs();switchProfile(id);
+ });
+ document.getElementById("whoren").addEventListener("click",function(){
+  var n=(prompt("เปลี่ยนชื่อเป็น",curName())||"").trim();
+  if(!n)return;
+  PROFS.forEach(function(p){if(p.id===CURP)p.name=n;});
+  saveProfs();renderWho();
+ });
+ document.getElementById("whodel").addEventListener("click",function(){
+  if(PROFS.length<2)return;
+  if(!confirm("ลบ "+curName()+" ทิ้ง? สถิติกับรายชื่อตัวของคนนี้จะหายหมด"))return;
+  PROF_KEYS.forEach(function(k){try{localStorage.removeItem(K(k));}catch(e){}});
+  PROFS=PROFS.filter(function(p){return p.id!==CURP;});
+  var nid=PROFS[0].id;saveProfs();switchProfile(nid);
+ });
+})();
 (function(){
  var sw=document.getElementById("bynamesw");
  sw.checked=BYNAME;
