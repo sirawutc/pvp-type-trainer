@@ -97,6 +97,19 @@ h3{font-size:1rem;font-weight:600}
 .g-x1{background:var(--imm-bg);color:var(--ink)}
 .g-low{background:var(--res-bg);color:var(--res)}
 .g-vlow{background:var(--imm-bg);color:var(--imm)}
+.exline{font-size:.92rem;color:var(--muted);margin:2px 0 0}
+.exline b{color:var(--ink)}
+.mbox{border-radius:16px;padding:12px 14px;margin-top:12px;background:var(--panel);border:1px solid var(--line)}
+.mbox h3{font-size:1rem;margin:0 0 4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.mbox .sub{font-size:.85rem;color:var(--muted);margin:0 0 8px}
+.mbox.good{background:var(--win-bg);border-color:transparent}
+.mbox.good h3{color:var(--win)}
+.mbox.bad{background:var(--res-bg);border-color:transparent}
+.mbox.bad h3{color:var(--res)}
+.mrow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:8px 0;border-top:1px solid rgba(127,127,127,.22)}
+.mrow.first{border-top:0;padding-top:2px}
+.mrow .mx{font-family:var(--head);font-weight:700;font-size:1.1rem}
+.mrow .work{grid-column:1/-1;font-size:.82rem;color:var(--muted);margin:0}
 .pick{display:flex;gap:8px;align-items:center;margin:10px 0 12px;flex-wrap:wrap}
 .slot{border:2px dashed var(--line);border-radius:14px;min-height:44px;min-width:110px;display:flex;align-items:center;justify-content:center;padding:4px 8px;font-size:.9rem;color:var(--muted)}
 .btn{border:0;border-radius:12px;padding:10px 16px;font-family:var(--head);font-weight:600;background:var(--focus);color:#fff}
@@ -243,9 +256,10 @@ h3{font-size:1rem;font-weight:600}
 
   <section id="view-mix" class="view" aria-labelledby="h-mix">
     <h2 id="h-mix">คู่ต่อสู้สองธาตุ</h2>
-    <p class="lead">เลือกธาตุของคู่ต่อสู้ (1–2 ธาตุ) แล้วดูว่าธาตุไหนตีแรงขนาดไหน ตัวคูณจะคูณกัน</p>
+    <p class="lead">ตัวในเกมส่วนใหญ่มี <b>สองธาตุ</b> ท่าเราจึงโดนคิด <b>สองชั้น</b> เช่นท่าไฟฟ้าแรงใส่น้ำ ×1.6 และแรงใส่บินอีก ×1.6 เจอ Pelipper ทีเดียวจึงเป็น ×2.56</p>
+    <p class="lead">หน้านี้ตอบสองข้อ: <b>เจอตัวนี้ควรตีด้วยท่าอะไร</b> และ <b>มันจะตีเราด้วยอะไร ควรสลับใครมารับ</b></p>
     <div class="grid" id="mixgrid"></div>
-    <div class="pick"><div class="slot" id="slots">ยังไม่ได้เลือก</div><button class="btn ghost" id="mixclear" type="button">ล้างที่เลือก</button></div>
+    <div class="pick"><div class="slot" id="slots">ยังไม่ได้เลือก</div><button class="btn ghost" id="mixrand" type="button">สุ่มตัวจริง</button><button class="btn ghost" id="mixclear" type="button">ล้างที่เลือก</button></div>
     <div id="mixres" class="mixres" aria-live="polite"></div>
   </section>
 
@@ -446,13 +460,46 @@ function renderMix(){
  document.getElementById("slots").innerHTML=mixSel.length?mixSel.map(function(i){return chipHTML(i);}).join(" "):"ยังไม่ได้เลือก";
  var out=document.getElementById("mixres");
  if(!mixSel.length){out.innerHTML='<p class="hint">แตะธาตุของคู่ต่อสู้เพื่อดูผล</p>';return;}
- var groups={};
- IDS.forEach(function(a){var m=mult(a,mixSel),k=m.toFixed(3);(groups[k]=groups[k]||{m:m,l:[]}).l.push(a);});
- var keys=Object.keys(groups).sort(function(a,b){return groups[b].m-groups[a].m;}),h="";
- keys.forEach(function(k){var g=groups[k],m=g.m,cls=m>=2?"g-x256":m>1?"g-x16":m===1?"g-x1":m>=0.6?"g-low":"g-vlow";
-  var label=m>=2?"โดนตีหนักมาก":m>1?"โดนตีแรง":m===1?"ปกติ":m>=0.6?"ต้านได้":"ต้านหนัก";
-  h+='<div class="grp '+cls+'"><div class="m">×'+(Math.round(m*1000)/1000)+' · '+label+'</div>'+chipsHTML(g.l,true)+'</div>';});
- out.innerHTML=h;
+ out.innerHTML=mixHTML(mixSel);
+}
+function nx(m){return "×"+(Math.round(m*1000)/1000);}
+function monsWith(sel){
+ return dexList().filter(function(r){
+  var t=r.slice(1);
+  if(t.length!==sel.length)return false;
+  return sel.every(function(x){return t.indexOf(x)>-1;});
+ }).map(function(r){return r[0];});
+}
+function mixRows(list,sel){
+ return list.map(function(r,i){
+  var work=sel.length>1?'<p class="work">'+sel.map(function(d){return (Math.round(one(r.a,d)*1000)/1000)+" ใส่"+T[d].th;}).join(" คูณ ")+" = "+nx(r.m)+'</p>':"";
+  return '<div class="mrow'+(i===0?" first":"")+'">'+chipHTML(r.a,true)+'<span class="mx">'+nx(r.m)+'</span>'+work+'</div>';
+ }).join("");
+}
+function mixHTML(sel){
+ var rows=IDS.map(function(a){return {a:a,m:mult(a,sel)};});
+ var good=rows.filter(function(r){return r.m>1;}).sort(function(x,y){return y.m-x.m;});
+ var flat=rows.filter(function(r){return r.m===1;}).map(function(r){return r.a;});
+ var bad=rows.filter(function(r){return r.m<1;}).sort(function(x,y){return x.m-y.m;});
+ var ex=monsWith(sel),h="";
+ h+='<p class="exline">'+(ex.length?"คู่ต่อสู้แบบนี้เช่น <b>"+ex.slice(0,5).join("</b> · <b>")+"</b>":"ยังไม่มีตัวไหนในรายชื่อที่เป็นธาตุชุดนี้")+'</p>';
+
+ h+='<div class="mbox good"><h3>✅ เราควรตีด้วยท่าพวกนี้</h3>';
+ h+=good.length?'<p class="sub">เรียงจากคุ้มที่สุด บรรทัดเล็กคือที่มาของตัวคูณ</p>'+mixRows(good,sel)
+   :'<p class="sub">ไม่มีธาตุไหนตีแรงใส่คู่นี้เลย คู่นี้กินทุกท่า ต้องเอาแรงล้วนสู้</p>';
+ h+='</div>';
+
+ h+='<div class="mbox bad"><h3>❌ อย่าเอาท่าพวกนี้ไปตี</h3><p class="sub">โดนหัก ยิ่งเลขน้อยยิ่งแย่</p>'+mixRows(bad,sel)+'</div>';
+
+ h+='<div class="mbox"><h3>➖ ธรรมดา ×1</h3><p class="sub">ไม่ได้เปรียบแต่ก็ไม่เสียเปรียบ</p>'+chipsHTML(flat,true)+'</div>';
+
+ var moves=sel.map(function(d){
+  return '<div style="margin-top:8px">ท่า'+T[d].th+' แรงใส่ '+chipsHTML(SE[d],true)+'</div>';
+ }).join("");
+ var safe=IDS.filter(function(x){return sel.every(function(d){return one(d,x)<1;});});
+ h+='<div class="mbox"><h3>🛡️ ถ้าจะสลับตัวมารับ</h3><p class="sub">มันน่าจะมีท่าตามธาตุตัวเอง ซึ่งแรงขึ้นอีกด้วย</p>'+moves;
+ h+='<div style="margin-top:12px">ธาตุที่กันได้'+(sel.length>1?"ทั้งสองท่า":"")+' '+(safe.length?chipsHTML(safe,true):'<span class="empty">ไม่มีธาตุเดียวที่กันได้ทั้งสองท่า ต้องใช้ตัวสองธาตุช่วยกันรับ</span>')+'</div></div>';
+ return h;
 }
 
 /* quiz */
@@ -1111,6 +1158,12 @@ document.getElementById("tabs").addEventListener("click",function(ev){var b=ev.t
 window.addEventListener("hashchange",function(){show(location.hash.replace("#",""));});
 
 document.getElementById("mixclear").addEventListener("click",function(){mixSel=[];renderMix();});
+document.getElementById("mixrand").addEventListener("click",function(){
+ var L=dexList();if(!L.length)return;
+ var r=L[Math.floor(Math.random()*L.length)];
+ mixSel=r.slice(1);renderMix();
+ document.getElementById("slots").innerHTML='<b class="mon">'+r[0]+'</b> '+mixSel.map(function(i){return chipHTML(i);}).join(" ");
+});
 document.getElementById("loops").addEventListener("click",function(ev){
  var b=ev.target.closest("button[data-l]");if(!b)return;
  var a=b.getAttribute("data-l");
